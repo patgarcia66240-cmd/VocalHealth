@@ -1,0 +1,8 @@
+{
+  "name": "Suivi de Tension et Pouls Vocal",
+  "description": "Une application interactive et sécurisée permettant de suivre sa tension artérielle et son pouls par commande vocale, avec un historique sous forme de feuille de calcul et des graphiques d'analyse.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

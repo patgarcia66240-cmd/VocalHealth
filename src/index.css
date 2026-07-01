@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+:root {
+  --natural-bg: #F4FAF8;        /* Very soft medical/mint off-white background */
+  --natural-surface: #FFFFFF;   /* Clean white for containers and header */
+  --natural-primary: #059669;   /* Beautiful professional Medical Emerald Green */
+  --natural-secondary: #475569; /* Clean Slate Gray for secondary text */
+  --natural-border: #D1FAE5;    /* Soft mint green border */
+  --natural-dark: #0F172A;      /* Deep navy/slate for excellent text contrast */
+  --natural-accent: #34D399;    /* Medical light mint accent */
+  --natural-card: #E6F4F1;      /* Soft medical mint/teal card back */
+}
+
+.dark {
+  --natural-bg: #0B1311;        /* Very dark medical/mint charcoal background */
+  --natural-surface: #12211C;   /* Deep emerald-charcoal surface for cards & headers */
+  --natural-primary: #10B981;   /* Slightly brighter medical emerald green for high contrast on dark bg */
+  --natural-secondary: #94A3B8;  /* Soft silver/gray for dark secondary text */
+  --natural-border: #1F3B30;     /* Darker forest/mint border */
+  --natural-dark: #F1F5F9;       /* Light silver/slate for dark text contrast */
+  --natural-accent: #059669;    /* Medical mint accent */
+  --natural-card: #182E27;      /* Dark medical mint/forest card back */
+}
+
+@theme {
+  --color-natural-bg: var(--natural-bg);
+  --color-natural-surface: var(--natural-surface);
+  --color-natural-primary: var(--natural-primary);
+  --color-natural-secondary: var(--natural-secondary);
+  --color-natural-border: var(--natural-border);
+  --color-natural-dark: var(--natural-dark);
+  --color-natural-accent: var(--natural-accent);
+  --color-natural-card: var(--natural-card);
+}
