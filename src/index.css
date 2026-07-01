@@ -1,25 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --natural-bg: #F4FAF8;        /* Very soft medical/mint off-white background */
-  --natural-surface: #FFFFFF;   /* Clean white for containers and header */
-  --natural-primary: #059669;   /* Beautiful professional Medical Emerald Green */
-  --natural-secondary: #475569; /* Clean Slate Gray for secondary text */
-  --natural-border: #D1FAE5;    /* Soft mint green border */
-  --natural-dark: #0F172A;      /* Deep navy/slate for excellent text contrast */
-  --natural-accent: #34D399;    /* Medical light mint accent */
-  --natural-card: #E6F4F1;      /* Soft medical mint/teal card back */
+  --natural-bg: #F8FAFC;        /* Modern medical blue-white background */
+  --natural-surface: #FFFFFF;   /* Clean white for containers */
+  --natural-primary: #0891B2;   /* Professional medical cyan/teal */
+  --natural-secondary: #64748B; /* Modern slate gray */
+  --natural-border: #E0F2FE;    /* Soft cyan border */
+  --natural-dark: #0F172A;      /* Deep navy for contrast */
+  --natural-accent: #06B6D4;    /* Bright cyan accent */
+  --natural-card: #F0F9FF;      /* Light medical blue card */
 }
 
 .dark {
-  --natural-bg: #0B1311;        /* Very dark medical/mint charcoal background */
-  --natural-surface: #12211C;   /* Deep emerald-charcoal surface for cards & headers */
-  --natural-primary: #10B981;   /* Slightly brighter medical emerald green for high contrast on dark bg */
-  --natural-secondary: #94A3B8;  /* Soft silver/gray for dark secondary text */
-  --natural-border: #1F3B30;     /* Darker forest/mint border */
-  --natural-dark: #F1F5F9;       /* Light silver/slate for dark text contrast */
-  --natural-accent: #059669;    /* Medical mint accent */
-  --natural-card: #182E27;      /* Dark medical mint/forest card back */
+  --natural-bg: #0C161E;        /* Deep medical blue-black */
+  --natural-surface: #15202B;   /* Dark blue surface */
+  --natural-primary: #22D3EE;   /* Bright cyan for dark mode */
+  --natural-secondary: #94A3B8; /* Soft silver gray */
+  --natural-border: #1E3A5F;    /* Dark blue border */
+  --natural-dark: #F1F5F9;      /* Light text for dark mode */
+  --natural-accent: #0891B2;    /* Cyan accent */
+  --natural-card: #172E3F;      /* Dark blue card */
 }
 
 @theme {

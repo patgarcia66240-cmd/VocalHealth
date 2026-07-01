@@ -193,6 +193,17 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
   const [error, setError] = useState<string | null>(null);
   const [supportSpeech, setSupportSpeech] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<"gemini" | "openai" | "mistral" | "qwen">(() => {
+    const saved = localStorage.getItem("selected_ai_provider");
+    if (saved === "gemini" || saved === "openai" || saved === "mistral" || saved === "qwen") {
+      return saved;
+    }
+    return "gemini";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("selected_ai_provider", selectedProvider);
+  }, [selectedProvider]);
   
   const recognitionRef = useRef<any>(null);
 
@@ -200,15 +211,12 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
     // Check for speech recognition support in the browser
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
+
     if (!SpeechRecognition) {
       setSupportSpeech(false);
     }
-    
-    // Speak first instructions when mount if in guided mode
-    if (inputMode === "guided" && !isMuted) {
-      speakInstructions("Bienvenue dans votre assistant de mesure. Veuillez dicter votre tension artérielle, par exemple : douze huit.");
-    }
+
+    // Message vocal de bienvenue désactivé - l'utilisateur peut activer l'aide vocale manuellement
   }, []);
 
   // Text-To-Speech guidance helper with an optional callback to start listening again
@@ -405,7 +413,7 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
           }
           setIsListening(false);
           const combinedText = `Tension: ${guidedTension}. Pouls: ${guidedPulse}. Commentaire: Aucun.`;
-          analyzeTranscriptWithGemini(combinedText);
+          analyzeTranscriptWithAI(combinedText);
         }, 800);
         return () => clearTimeout(timer);
       } else if (transcript.trim().length > 4) {
@@ -419,7 +427,7 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
           }
           setIsListening(false);
           const combinedText = `Tension: ${guidedTension}. Pouls: ${guidedPulse}. Commentaire: ${finalRemarks}.`;
-          analyzeTranscriptWithGemini(combinedText);
+          analyzeTranscriptWithAI(combinedText);
         }, 2200);
         return () => clearTimeout(timer);
       }
@@ -488,12 +496,12 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
         setIsListening(false);
 
         const combinedText = `Tension: ${guidedTension}. Pouls: ${guidedPulse}. Commentaire: ${comment}.`;
-        analyzeTranscriptWithGemini(combinedText);
+        analyzeTranscriptWithAI(combinedText);
       }
     } else {
       // Free Mode
       if (value.trim()) {
-        analyzeTranscriptWithGemini(value);
+        analyzeTranscriptWithAI(value);
       }
     }
   };
@@ -538,7 +546,7 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
       const combinedText = `Tension: ${guidedTension}. Pouls: ${guidedPulse}. Commentaire: Aucun commentaire.`;
       setGuidedRemarks("Aucun");
       setTranscript("");
-      analyzeTranscriptWithGemini(combinedText);
+      analyzeTranscriptWithAI(combinedText);
     }
   };
 
@@ -561,16 +569,17 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
     });
   };
 
-  const analyzeTranscriptWithGemini = async (textToParse: string) => {
+  const analyzeTranscriptWithAI = async (textToParse: string) => {
     setIsAnalyzing(true);
     setError(null);
-    onStatusChange("Analyse intelligente par Gemini AI...");
+    const providerName = selectedProvider === "gemini" ? "Gemini" : selectedProvider === "openai" ? "OpenAI" : selectedProvider === "mistral" ? "Mistral" : "Qwen";
+    onStatusChange(`Analyse intelligente par ${providerName} AI...`);
 
     try {
       const response = await fetch("/api/parse-measurements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: textToParse }),
+        body: JSON.stringify({ text: textToParse, provider: selectedProvider }),
       });
 
       if (!response.ok) {
@@ -634,26 +643,44 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
   const liveParsedPulse = guidedStep === 2 && transcript.trim() ? cleanInputToDigits(transcript, 2) : "";
 
   return (
-    <div className="bg-natural-surface rounded-[32px] border border-natural-border p-8 shadow-sm flex flex-col gap-6" id="voice-input-container">
+    <div className="bg-gradient-to-br from-natural-surface to-natural-card/30 rounded-[28px] border border-natural-border/50 p-5 shadow-lg shadow-natural-primary/5 flex flex-col gap-4 backdrop-blur-sm" id="voice-input-container">
       
       {/* Upper header controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-natural-border/60 pb-5">
-        <div className="flex items-center gap-2">
-          <div className="p-2.5 bg-natural-bg text-natural-primary rounded-xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-natural-border/60 pb-2">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2.5 bg-gradient-to-br from-natural-primary/10 to-natural-accent/10 rounded-xl text-natural-primary shadow-sm">
             <Mic className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-natural-primary flex items-center gap-1.5" id="voice-input-title">
-              Saisie Vocale Intelligente
+            <h2 className="text-sm font-bold text-natural-dark flex items-center gap-1.5 tracking-tight" id="voice-input-title">
+              Saisie Vocale IA
             </h2>
-            <p className="text-[11px] text-natural-secondary">
-              Les mesures sont automatiquement converties en chiffres
+            <p className="text-[11px] text-natural-secondary font-medium">
+              Converti automatiquement par {selectedProvider === 'gemini' ? 'Gemini AI' : selectedProvider === 'openai' ? 'OpenAI' : selectedProvider === 'mistral' ? 'Mistral AI' : 'Qwen AI'}
             </p>
           </div>
         </div>
 
         {/* Mode switcher and Mute button */}
         <div className="flex items-center gap-2">
+          {/* AI Engine dropdown select */}
+          <select
+            value={selectedProvider}
+            onChange={(e) => {
+              const prov = e.target.value as any;
+              setSelectedProvider(prov);
+              const provName = prov === 'gemini' ? 'Gemini' : prov === 'openai' ? 'OpenAI' : prov === 'mistral' ? 'Mistral' : 'Qwen';
+              speakInstructions(`Moteur ${provName} activé.`);
+            }}
+            className="text-[10px] font-extrabold bg-gradient-to-br from-natural-card to-natural-bg px-2.5 py-2.5 rounded-xl border border-natural-border/50 text-natural-dark focus:ring-1 focus:ring-natural-primary focus:border-natural-primary shadow-sm hover:shadow-md cursor-pointer outline-none transition-all"
+            title="Sélectionner le moteur d'analyse IA"
+          >
+            <option value="gemini">🤖 Gemini</option>
+            <option value="openai">🟢 OpenAI</option>
+            <option value="mistral">🟠 Mistral</option>
+            <option value="qwen">🔴 Qwen</option>
+          </select>
+
           {/* Mute/Unmute voice guidance */}
           <button
             onClick={() => {
@@ -675,14 +702,14 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
                 }
               }
             }}
-            className="p-2 bg-natural-bg hover:bg-natural-border text-natural-primary rounded-xl transition-all cursor-pointer"
+            className="p-2.5 bg-gradient-to-br from-natural-card to-natural-bg hover:from-natural-primary/10 hover:to-natural-accent/10 text-natural-primary rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md"
             title={isMuted ? "Activer l'aide vocale" : "Couper l'aide vocale"}
           >
             {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </button>
 
           {/* Mode toggle tabs */}
-          <div className="flex bg-natural-bg p-0.5 rounded-xl border border-natural-border text-[10px] font-bold">
+          <div className="flex bg-gradient-to-br from-natural-card to-natural-bg p-0.5 rounded-xl border border-natural-border/50 text-[10px] font-bold shadow-inner">
             <button
               onClick={() => {
                 setInputMode("guided");
@@ -730,9 +757,9 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
 
       {/* Main Mode GUI */}
       {inputMode === "guided" ? (
-        <div className="space-y-6">
+        <div className="space-y-3">
           {/* Progress sequence visualizer */}
-          <div className="grid grid-cols-3 gap-2 text-[10px] font-bold text-center">
+          <div className="grid grid-cols-3 gap-1.5 text-[10px] font-bold text-center">
             {/* Step 1 badge */}
             <button
               onClick={() => handleStepJump(1)}
@@ -750,7 +777,7 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
                 }`}>
                   1
                 </span>
-                <span>🩺 Tension (mmHg)</span>
+                <span>🩺 Tension</span>
               </div>
               <span className="text-[11px] font-mono text-emerald-700 font-bold mt-0.5 block">
                 {guidedTension ? `${guidedTension}` : "—"}
@@ -775,7 +802,7 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
                 }`}>
                   2
                 </span>
-                <span>💓 Pouls (bpm)</span>
+                <span>💓 Pouls</span>
               </div>
               <span className="text-[11px] font-mono text-emerald-700 font-bold mt-0.5 block">
                 {guidedPulse ? `${guidedPulse}` : "—"}
@@ -809,7 +836,7 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
           </div>
 
           {/* Active Guidance instruction panel */}
-          <div className="bg-natural-card/40 border border-natural-border/60 rounded-3xl p-6 text-center space-y-4">
+          <div className="bg-natural-card/40 border border-natural-border/60 rounded-3xl p-3 text-center space-y-2">
             <span className="text-[9px] font-bold text-natural-primary uppercase tracking-widest bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
               Étape active : {guidedStep === 1 ? "Tension" : guidedStep === 2 ? "Pouls" : "Commentaire"}
             </span>
@@ -846,16 +873,16 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
                   <button
                     onClick={isListening ? () => stopListening(true) : startListening}
                     disabled={isAnalyzing}
-                    className={`relative z-10 h-20 w-20 rounded-full flex items-center justify-center text-white transition-all shadow-md hover:scale-105 active:scale-95 focus:outline-none cursor-pointer ${
+                    className={`relative z-10 h-16 w-16 rounded-full flex items-center justify-center text-white transition-all shadow-md hover:scale-105 active:scale-95 focus:outline-none cursor-pointer ${
                       isListening ? "bg-rose-500 shadow-rose-200" : "bg-natural-primary shadow-emerald-200 hover:bg-[#047857]"
                     } disabled:opacity-50`}
                   >
                     {isListening ? (
-                      <MicOff className="h-8 w-8 animate-pulse" />
+                      <MicOff className="h-6 w-6 animate-pulse" />
                     ) : isAnalyzing ? (
-                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <Loader2 className="h-6 w-6 animate-spin" />
                     ) : (
-                      <Mic className="h-8 w-8" />
+                      <Mic className="h-6 w-6" />
                     )}
                   </button>
                 </div>
@@ -867,7 +894,7 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
             )}
 
             {/* Captured text preview & manual input field for instant correction */}
-            <div className="pt-2">
+            <div className="pt-1">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -885,38 +912,38 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
                       ? "Ex: 72 ou 85"
                       : "Saisissez ou dites un commentaire (ou 'aucun')"
                   }
-                  className="flex-1 text-xs p-3.5 border border-natural-border rounded-xl focus:ring-1 focus:ring-natural-primary focus:border-natural-primary text-natural-dark bg-natural-surface shadow-inner font-mono text-center font-bold text-base tracking-widest text-natural-primary"
+                  className="flex-1 text-xs p-2 border border-natural-border rounded-xl focus:ring-1 focus:ring-natural-primary focus:border-natural-primary text-natural-dark bg-natural-surface shadow-inner font-mono text-center font-bold text-sm tracking-widest text-natural-primary"
                   disabled={isAnalyzing}
                 />
-                
+
                 {/* Submit step */}
                 <button
                   onClick={() => handleValidateValue(transcript)}
                   disabled={isAnalyzing || !transcript.trim()}
-                  className="px-5 bg-natural-primary hover:bg-[#047857] text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 cursor-pointer flex items-center gap-1 shadow-sm"
+                  className="px-4 bg-natural-primary hover:bg-[#047857] text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 cursor-pointer flex items-center gap-1 shadow-sm"
                   title="Étape suivante"
                 >
                   <span>Valider</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-3 w-3" />
                 </button>
               </div>
 
               {/* Skip and Reset helper controls */}
-              <div className="flex justify-between items-center mt-4 pt-1 px-1">
+              <div className="flex justify-between items-center mt-2 pt-1 px-1">
                 <button
                   onClick={resetGuidedMode}
-                  className="text-[10px] text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
+                  className="text-[9px] text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
                   title="Recommencer l'assistant du début"
                 >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  <span>Recommencer à l'étape 1</span>
+                  <RotateCcw className="h-3 w-3" />
+                  <span>Recommencer</span>
                 </button>
 
                 <button
                   onClick={handleSkipOrNone}
-                  className="text-[10px] text-natural-primary hover:underline font-bold cursor-pointer"
+                  className="text-[9px] text-natural-primary hover:underline font-bold cursor-pointer"
                 >
-                  {guidedStep === 3 ? "Passer (aucun commentaire)" : "Passer cette étape"}
+                  {guidedStep === 3 ? "Passer" : "Passer"}
                 </button>
               </div>
             </div>
@@ -924,8 +951,8 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
         </div>
       ) : (
         /* Free Mode GUI */
-        <div className="space-y-6">
-          <div className="flex flex-col items-center py-4 bg-natural-bg/25 border border-natural-border/50 rounded-2xl p-6">
+        <div className="space-y-3">
+          <div className="flex flex-col items-center py-2 bg-natural-bg/25 border border-natural-border/50 rounded-2xl p-3">
             <div className="relative flex items-center justify-center">
               <AnimatePresence>
                 {isListening && (
@@ -942,16 +969,16 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
               <button
                 onClick={isListening ? () => stopListening(true) : startListening}
                 disabled={isAnalyzing}
-                className={`relative z-10 h-24 w-24 rounded-full flex items-center justify-center text-white transition-all shadow-lg hover:scale-105 active:scale-95 focus:outline-none cursor-pointer ${
+                className={`relative z-10 h-20 w-20 rounded-full flex items-center justify-center text-white transition-all shadow-lg hover:scale-105 active:scale-95 focus:outline-none cursor-pointer ${
                   isListening ? "bg-rose-500 shadow-rose-200" : "bg-natural-primary hover:bg-[#047857] shadow-emerald-200"
                 } disabled:opacity-50`}
               >
                 {isListening ? (
-                  <MicOff className="h-9 w-9 animate-pulse" />
+                  <MicOff className="h-8 w-8 animate-pulse" />
                 ) : isAnalyzing ? (
-                  <Loader2 className="h-9 w-9 animate-spin" />
+                  <Loader2 className="h-8 w-8 animate-spin" />
                 ) : (
-                  <Mic className="h-9 w-9" />
+                  <Mic className="h-8 w-8" />
                 )}
               </button>
             </div>
@@ -980,31 +1007,31 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
           </div>
 
           {/* Written backup entry */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-natural-secondary uppercase tracking-widest block">
-              Saisie directe par écrit :
+              Saisie directe :
             </label>
             <textarea
-              className="w-full min-h-[80px] text-xs p-3 border border-natural-border rounded-xl focus:ring-1 focus:ring-natural-primary focus:border-natural-primary text-natural-dark bg-natural-bg/25"
+              className="w-full min-h-[60px] text-xs p-2 border border-natural-border rounded-xl focus:ring-1 focus:ring-natural-primary focus:border-natural-primary text-natural-dark bg-natural-bg/25"
               placeholder="Écrivez votre phrase ici (Ex: 120 80 pouls 75 en forme) puis cliquez sur Analyser"
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
               disabled={isListening || isAnalyzing}
             />
             <button
-              onClick={() => analyzeTranscriptWithGemini(transcript)}
+              onClick={() => analyzeTranscriptWithAI(transcript)}
               disabled={isListening || isAnalyzing || !transcript.trim()}
-              className="w-full py-2 px-3 bg-natural-primary hover:bg-[#047857] text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+              className="w-full py-1.5 px-3 bg-natural-primary hover:bg-[#047857] text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
             >
               {isAnalyzing ? (
                 <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Analyse par Gemini...</span>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Analyse...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-3.5 w-3.5 text-natural-accent" />
-                  <span>Analyser la phrase complète</span>
+                  <Sparkles className="h-3 w-3 text-natural-accent" />
+                  <span>Analyser</span>
                 </>
               )}
             </button>

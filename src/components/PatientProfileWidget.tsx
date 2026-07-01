@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { User, Phone, MapPin, Calendar, Edit2, Check, X, ShieldAlert } from "lucide-react";
+import { User, Edit2, Check, X } from "lucide-react";
 import { PatientProfile } from "../types";
 import { calculateAge } from "../utils";
 import { motion, AnimatePresence } from "motion/react";
@@ -64,7 +64,7 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
       tel: tel.trim(),
       dateNaissance: dateNaissance
     };
-    
+
     localStorage.setItem("patient_profile", JSON.stringify(updatedProfile));
     setProfile(updatedProfile);
     setIsEditing(false);
@@ -87,15 +87,15 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
   const age = profile ? calculateAge(profile.dateNaissance) : null;
 
   return (
-    <div className="bg-natural-surface rounded-[32px] border border-natural-border p-6 shadow-sm space-y-4" id="patient-profile-card">
-      <div className="flex items-center justify-between border-b border-natural-border/60 pb-4">
+    <div className="bg-gradient-to-br from-natural-surface to-natural-card/30 rounded-[28px] border border-natural-border/50 p-4 shadow-lg shadow-natural-primary/5 space-y-3 backdrop-blur-sm" id="patient-profile-card">
+      <div className="flex items-center justify-between border-b border-natural-border/40 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-natural-primary/10 rounded-xl text-natural-primary">
+          <div className="p-2.5 bg-gradient-to-br from-natural-primary/10 to-natural-accent/10 rounded-xl text-natural-primary shadow-sm">
             <User className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-bold text-natural-primary text-sm font-sans">Profil Patient</h3>
-            <p className="text-[10px] text-natural-secondary font-semibold font-mono uppercase tracking-wider">Identité & Constantes</p>
+            <h3 className="font-bold text-natural-dark text-sm font-sans tracking-tight">Profil Patient</h3>
+            <p className="text-[10px] text-natural-secondary font-semibold font-sans uppercase tracking-widest opacity-80">Identité médicale</p>
           </div>
         </div>
         
@@ -113,7 +113,7 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
               )}
               <button
                 onClick={() => setIsEditing(true)}
-                className="p-2 border border-natural-border hover:bg-natural-bg rounded-xl text-natural-primary transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+                className="p-2.5 border border-natural-border/50 hover:border-natural-primary hover:bg-natural-primary/5 rounded-xl text-natural-primary transition-all cursor-pointer flex items-center gap-1.5 text-xs font-semibold shadow-sm hover:shadow-md"
                 id="edit-profile-btn"
               >
                 <Edit2 className="h-3.5 w-3.5" />
@@ -140,10 +140,10 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
             onSubmit={handleSave}
-            className="space-y-3 text-xs"
+            className="space-y-2 text-xs"
             id="profile-form"
           >
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">Prénom</label>
                 <input
@@ -152,7 +152,7 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
                   placeholder="Ex: Jean"
                   value={prenom}
                   onChange={(e) => setPrenom(e.target.value)}
-                  className="w-full px-3 py-2 border border-natural-border rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/10 focus:border-natural-primary bg-natural-bg font-sans"
+                  className="w-full px-3 py-2 border border-natural-border/50 rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/20 focus:border-natural-primary bg-white/80 backdrop-blur-sm font-sans shadow-sm transition-all"
                 />
               </div>
               <div className="space-y-1">
@@ -163,7 +163,7 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
                   placeholder="Ex: Dupont"
                   value={nom}
                   onChange={(e) => setNom(e.target.value)}
-                  className="w-full px-3 py-2 border border-natural-border rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/10 focus:border-natural-primary bg-natural-bg font-sans"
+                  className="w-full px-2 py-1 border border-natural-border rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/10 focus:border-natural-primary bg-natural-bg font-sans"
                 />
               </div>
             </div>
@@ -175,7 +175,7 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
                 required
                 value={dateNaissance}
                 onChange={(e) => setDateNaissance(e.target.value)}
-                className="w-full px-3 py-2 border border-natural-border rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/10 focus:border-natural-primary bg-natural-bg font-sans"
+                className="w-full px-3 py-2 border border-natural-border/50 rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/20 focus:border-natural-primary bg-white/80 backdrop-blur-sm font-sans shadow-sm transition-all"
               />
             </div>
 
@@ -183,11 +183,10 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
               <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">Téléphone</label>
               <input
                 type="tel"
-                required
                 placeholder="Ex: 06 12 34 56 78"
                 value={tel}
                 onChange={(e) => setTel(e.target.value)}
-                className="w-full px-3 py-2 border border-natural-border rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/10 focus:border-natural-primary bg-natural-bg font-sans"
+                className="w-full px-3 py-2 border border-natural-border/50 rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/20 focus:border-natural-primary bg-white/80 backdrop-blur-sm font-sans shadow-sm transition-all"
               />
             </div>
 
@@ -195,46 +194,43 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
               <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">Adresse</label>
               <input
                 type="text"
-                required
                 placeholder="Ex: 12 Rue de la Paix"
                 value={adresse}
                 onChange={(e) => setAdresse(e.target.value)}
-                className="w-full px-3 py-2 border border-natural-border rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/10 focus:border-natural-primary bg-natural-bg font-sans"
+                className="w-full px-3 py-2 border border-natural-border/50 rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/20 focus:border-natural-primary bg-white/80 backdrop-blur-sm font-sans shadow-sm transition-all"
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <div className="col-span-1 space-y-1">
-                <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">Code Postal</label>
+                <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">CP</label>
                 <input
                   type="text"
-                  required
                   placeholder="Ex: 75001"
                   value={cp}
                   onChange={(e) => setCp(e.target.value)}
-                  className="w-full px-3 py-2 border border-natural-border rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/10 focus:border-natural-primary bg-natural-bg font-sans"
+                  className="w-full px-3 py-2 border border-natural-border/50 rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/20 focus:border-natural-primary bg-white/80 backdrop-blur-sm font-sans shadow-sm transition-all"
                 />
               </div>
               <div className="col-span-2 space-y-1">
                 <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">Ville</label>
                 <input
                   type="text"
-                  required
                   placeholder="Ex: Paris"
                   value={ville}
                   onChange={(e) => setVille(e.target.value)}
-                  className="w-full px-3 py-2 border border-natural-border rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/10 focus:border-natural-primary bg-natural-bg font-sans"
+                  className="w-full px-3 py-2 border border-natural-border/50 rounded-xl text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/20 focus:border-natural-primary bg-white/80 backdrop-blur-sm font-sans shadow-sm transition-all"
                 />
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full mt-2 py-2 bg-natural-primary text-white rounded-xl text-xs font-bold hover:opacity-90 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+              className="w-full mt-3 py-2.5 bg-gradient-to-r from-natural-primary to-natural-accent text-white rounded-xl text-xs font-bold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
               id="save-profile-btn"
             >
-              <Check className="h-4 w-4" />
-              <span>Enregistrer le Profil</span>
+              <Check className="h-3.5 w-3.5" />
+              <span>Enregistrer</span>
             </button>
           </motion.form>
         ) : profile ? (
@@ -242,53 +238,23 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
             key="display-profile"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="space-y-4"
+            className="space-y-2"
             id="profile-info-display"
           >
             {/* Identity details */}
-            <div className="flex items-center gap-3.5 bg-natural-bg/50 p-4 rounded-2xl border border-natural-border/50">
-              <div className="h-12 w-12 rounded-full bg-natural-primary text-white flex items-center justify-center font-bold text-lg shadow-sm">
+            <div className="flex items-center gap-3 bg-gradient-to-r from-natural-primary/5 to-natural-accent/5 p-4 rounded-2xl border border-natural-border/30 shadow-sm">
+              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-natural-primary to-natural-accent text-white flex items-center justify-center font-bold text-base shadow-md">
                 {prenom.charAt(0).toUpperCase()}{nom.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-sm text-natural-dark truncate">{prenom} {nom}</h4>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] text-natural-secondary font-semibold font-mono">Patient</span>
+                <h4 className="font-bold text-base text-natural-dark truncate tracking-tight">{prenom} {nom}</h4>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[11px] text-natural-secondary font-semibold font-sans">Patient</span>
                   {age !== null && (
-                    <span className="text-[10px] bg-natural-primary/15 text-natural-primary font-bold px-2 py-0.5 rounded-full">
+                    <span className="text-[11px] bg-gradient-to-r from-natural-primary/10 to-natural-accent/10 text-natural-primary font-bold px-2.5 py-0.5 rounded-full border border-natural-primary/20">
                       {age} ans
                     </span>
                   )}
-                </div>
-              </div>
-            </div>
-
-            {/* Profile fields list */}
-            <div className="space-y-3.5 text-xs">
-              <div className="flex items-start gap-3">
-                <Calendar className="h-4 w-4 text-natural-secondary mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-natural-secondary uppercase tracking-wider">Date de naissance</p>
-                  <p className="font-semibold text-natural-dark mt-0.5">
-                    {new Date(profile.dateNaissance).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Phone className="h-4 w-4 text-natural-secondary mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-natural-secondary uppercase tracking-wider">Téléphone</p>
-                  <p className="font-mono font-semibold text-natural-dark mt-0.5">{profile.tel}</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <MapPin className="h-4 w-4 text-natural-secondary mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-bold text-natural-secondary uppercase tracking-wider">Adresse résidentielle</p>
-                  <p className="font-semibold text-natural-dark mt-0.5">{profile.adresse}</p>
-                  <p className="text-natural-secondary font-medium">{profile.cp} {profile.ville}</p>
                 </div>
               </div>
             </div>
@@ -298,21 +264,21 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
             key="empty-profile"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-6 px-4 bg-natural-bg/40 rounded-2xl border border-dashed border-natural-border flex flex-col items-center justify-center gap-3"
+            className="text-center py-4 px-3 bg-gradient-to-br from-natural-card/30 to-natural-bg/40 rounded-2xl border border-dashed border-natural-border/60 flex flex-col items-center justify-center gap-2"
             id="profile-empty-state"
           >
-            <div className="p-3 bg-natural-primary/10 rounded-full text-natural-primary">
-              <User className="h-6 w-6 opacity-80" />
+            <div className="p-2.5 bg-gradient-to-br from-natural-primary/10 to-natural-accent/10 rounded-full text-natural-primary">
+              <User className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-natural-dark">Aucun profil patient enregistré</p>
-              <p className="text-[10px] text-natural-secondary mt-1 max-w-[220px] mx-auto leading-relaxed">
-                Renseignez votre identité et date de naissance pour calculer et afficher votre âge.
+              <p className="text-xs font-bold text-natural-dark">Aucun profil patient</p>
+              <p className="text-[10px] text-natural-secondary mt-1 max-w-[180px] mx-auto leading-relaxed">
+                Créez votre profil pour un suivi personnalisé
               </p>
             </div>
             <button
               onClick={() => setIsEditing(true)}
-              className="mt-1 px-4 py-1.5 bg-natural-primary/10 hover:bg-natural-primary text-natural-primary hover:text-white rounded-xl text-xs font-extrabold transition-all cursor-pointer"
+              className="mt-1 px-4 py-2 bg-gradient-to-r from-natural-primary/10 to-natural-accent/10 hover:from-natural-primary hover:to-natural-accent text-natural-primary hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm hover:shadow-md"
             >
               Créer mon profil
             </button>

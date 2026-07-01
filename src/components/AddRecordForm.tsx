@@ -63,52 +63,39 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 15 }}
-      className="bg-natural-surface rounded-[32px] border border-natural-border p-8 shadow-sm"
-      id="add-record-form"
-    >
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
-          <div className="p-2.5 bg-natural-bg text-natural-primary rounded-xl">
-            <Heart className="h-5 w-5" />
+    <div className="h-full flex flex-col" id="add-record-form">
+      <div className="p-6 border-b border-natural-border/40">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-gradient-to-br from-natural-primary/15 to-natural-accent/15 text-natural-primary rounded-2xl shadow-md">
+              <Heart className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-natural-dark tracking-tight" id="form-title">
+                {initialValues ? "Validation des mesures" : "Nouvelle mesure"}
+              </h2>
+              <p className="text-[11px] text-natural-secondary">
+                {initialValues ? "L'IA a extrait ces valeurs" : "Entrez vos paramètres"}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-base font-bold text-natural-primary" id="form-title">
-              {initialValues ? "Validation des Mesures" : "Saisie Manuelle Directe"}
-            </h2>
-            <p className="text-[11px] text-natural-secondary">
-              {initialValues ? "L'IA a extrait ces valeurs, ajustez-les si besoin" : "Entrez les paramètres directement"}
-            </p>
-          </div>
+          {initialValues && (
+            <div className="flex items-center gap-1.5 bg-gradient-to-r from-natural-primary/10 to-natural-accent/10 text-natural-primary px-3 py-1.5 rounded-full text-xs font-bold border border-natural-primary/20 shadow-sm">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>IA</span>
+            </div>
+          )}
         </div>
-        {initialValues && (
-          <div className="flex items-center gap-1 bg-natural-bg text-natural-primary px-3 py-1 rounded-full text-xs font-bold border border-natural-border">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>IA</span>
-          </div>
-        )}
-        {onCancel && (
-          <button
-            onClick={onCancel}
-            className="p-1.5 hover:bg-natural-bg text-natural-secondary hover:text-natural-primary rounded-xl transition-colors cursor-pointer"
-            title="Fermer"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5">
         {/* Blood Pressure Inputs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Systolic */}
-          <div className="space-y-2 bg-natural-bg/30 p-4 rounded-2xl border border-natural-border/70">
+          <div className="space-y-2 bg-gradient-to-br from-natural-primary/5 to-natural-accent/5 p-4 rounded-xl border border-natural-border/40 shadow-sm">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-bold text-natural-secondary uppercase tracking-widest">
-                Systolique (SYS)
+              <label className="text-[10px] font-bold text-natural-dark uppercase tracking-wider">
+                Systolique
               </label>
               <span className="text-lg font-bold text-natural-primary font-mono">
                 {systolic} <span className="text-[10px] text-natural-secondary font-normal font-sans">mmHg</span>
@@ -120,12 +107,12 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
               max="200"
               value={systolic}
               onChange={(e) => setSystolic(parseInt(e.target.value))}
-              className="w-full h-1.5 bg-natural-border rounded-lg appearance-none cursor-pointer accent-natural-primary"
+              className="w-full h-2 bg-natural-border/50 rounded-lg appearance-none cursor-pointer accent-natural-primary"
             />
-            <div className="flex justify-between text-[10px] text-natural-secondary font-mono">
-              <span>70 (Basse)</span>
-              <span>120 (Idéal)</span>
-              <span>200 (Élevée)</span>
+            <div className="flex justify-between text-[9px] text-natural-secondary font-mono">
+              <span>70</span>
+              <span className="text-natural-primary font-bold">120</span>
+              <span>200</span>
             </div>
           </div>
 
@@ -199,12 +186,12 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
         )}
 
         {/* Pulse & Date Time Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Heart rate / Pulse */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-natural-primary flex items-center gap-1 uppercase tracking-widest">
+            <label className="text-[10px] font-bold text-natural-dark flex items-center gap-1 uppercase tracking-wider">
               <HeartPulse className="h-3.5 w-3.5 text-natural-primary" />
-              Pouls (bpm)
+              Pouls
             </label>
             <input
               type="number"
@@ -213,28 +200,28 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
               required
               value={pulse}
               onChange={(e) => setPulse(parseInt(e.target.value) || 70)}
-              className="w-full px-3.5 py-2 border border-natural-border rounded-xl text-xs text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/10 focus:border-natural-primary bg-natural-surface font-mono"
+              className="w-full px-3 py-2 border border-natural-border/50 rounded-xl text-xs text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/20 focus:border-natural-primary bg-white/80 backdrop-blur-sm font-mono font-bold shadow-sm transition-all"
             />
           </div>
 
           {/* Date Picker */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-natural-primary flex items-center gap-1 uppercase tracking-widest">
+            <label className="text-[10px] font-bold text-natural-dark flex items-center gap-1 uppercase tracking-wider">
               <Calendar className="h-3.5 w-3.5 text-natural-secondary" />
-              Date de mesure
+              Date
             </label>
             <input
               type="date"
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3.5 py-2 border border-natural-border rounded-xl text-xs text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/10 focus:border-natural-primary bg-natural-surface"
+              className="w-full px-3 py-2 border border-natural-border/50 rounded-xl text-xs text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/20 focus:border-natural-primary bg-white/80 backdrop-blur-sm shadow-sm transition-all"
             />
           </div>
 
           {/* Time Picker */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-natural-primary flex items-center gap-1 uppercase tracking-widest">
+            <label className="text-[10px] font-bold text-natural-dark flex items-center gap-1 uppercase tracking-wider">
               <Clock className="h-3.5 w-3.5 text-natural-secondary" />
               Heure
             </label>
@@ -243,7 +230,7 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
               required
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              className="w-full px-3.5 py-2 border border-natural-border rounded-xl text-xs text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/10 focus:border-natural-primary bg-natural-surface"
+              className="w-full px-3 py-2 border border-natural-border/50 rounded-xl text-xs text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/20 focus:border-natural-primary bg-white/80 backdrop-blur-sm shadow-sm transition-all"
             />
           </div>
         </div>
@@ -278,14 +265,36 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
           )}
           <button
             type="submit"
-            className="px-5 py-2 bg-natural-primary hover:bg-[#047857] text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 focus:outline-none cursor-pointer"
+            className="px-6 py-2.5 bg-gradient-to-r from-natural-primary to-natural-accent hover:from-natural-primary/90 hover:to-natural-accent/90 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2 focus:outline-none cursor-pointer"
             id="save-record-btn"
           >
             <Plus className="h-4 w-4" />
-            Enregistrer dans l'historique
+            Enregistrer
           </button>
         </div>
       </form>
-    </motion.div>
+
+      {/* Footer with action buttons */}
+      <div className="p-6 border-t border-natural-border/40 bg-gradient-to-r from-natural-card/20 to-natural-bg/20">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-5 py-2.5 bg-natural-card hover:bg-natural-border text-natural-secondary rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border border-natural-border/50 shadow-sm hover:shadow-md"
+          >
+            <X className="h-4 w-4" />
+            Annuler
+          </button>
+          <button
+            onClick={handleSubmit}
+            className="flex-1 px-6 py-2.5 bg-gradient-to-r from-natural-primary to-natural-accent hover:from-natural-primary/90 hover:to-natural-accent/90 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2 focus:outline-none cursor-pointer"
+            type="submit"
+          >
+            <Plus className="h-4 w-4" />
+            Enregistrer les mesures
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

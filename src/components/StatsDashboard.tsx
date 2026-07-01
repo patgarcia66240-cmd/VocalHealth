@@ -5,10 +5,14 @@
 
 import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
+import CustomTooltip from "./CustomTooltip.tsx";
 import { Activity, Heart, ArrowUpRight, ArrowDownRight, Percent, Database, Info, UserCheck } from "lucide-react";
 import { MeasurementRecord, PeriodFilter, PatientProfile } from "../types";
 import { calculateStats, formatDateFr, calculateAge } from "../utils";
 import { motion } from "motion/react";
+
+
+
 
 interface StatsDashboardProps {
   filteredRecords: MeasurementRecord[];
@@ -17,12 +21,14 @@ interface StatsDashboardProps {
   patientProfile?: PatientProfile | null;
 }
 
+
+
 export default function StatsDashboard({ filteredRecords, allRecords, activePeriod, patientProfile }: StatsDashboardProps) {
   const stats = useMemo(() => calculateStats(filteredRecords), [filteredRecords]);
 
   // Format data specifically for Recharts
   const chartData = useMemo(() => {
-    return filteredRecords.map((r) => {
+    return filteredRecords.map((r, i) => {
       const dateObj = new Date(r.timestamp);
       
       // Dynamic X-axis formatting based on filter
@@ -37,6 +43,7 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
 
       return {
         ...r,
+        _idx: i,
         displayName: formattedTime,
         systolique: r.systolic,
         diastolique: r.diastolic,
@@ -46,31 +53,10 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
     });
   }, [filteredRecords, activePeriod]);
 
-  // Custom tooltips for nice styling
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-natural-surface text-natural-dark p-3.5 rounded-2xl shadow-md border border-natural-border text-xs font-sans space-y-1">
-          <p className="font-bold text-natural-primary font-mono">{data.dateComplete}</p>
-          <div className="h-[1px] bg-natural-border my-1" />
-          {payload.map((item: any, idx: number) => (
-            <p key={idx} className="flex items-center gap-2 font-bold text-natural-dark">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-              <span>{item.name} :</span>
-              <span className="font-mono text-natural-primary text-sm font-black">{item.value} {item.name.includes("pouls") ? "bpm" : "mmHg"}</span>
-            </p>
-          ))}
-          {data.remarks && (
-            <p className="text-[11px] text-natural-secondary italic mt-1.5 font-sans leading-relaxed max-w-[200px] break-words">
-              💬 {data.remarks}
-            </p>
-          )}
-        </div>
-      );
-    }
-    return null;
-  };
+  // Helper to format X axis ticks from index
+  const xTickFormatter = (idx: number) => chartData[idx]?.displayName ?? '';
+  // Helper for tooltip label
+  const xLabelFormatter = (idx: number) => chartData[idx]?.displayName ?? '';
 
   return (
     <div className="space-y-6" id="stats-dashboard">
@@ -230,7 +216,8 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
                 <LineChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-natural-border)" />
                   <XAxis
-                    dataKey="displayName"
+                    dataKey="_idx"
+                    tickFormatter={xTickFormatter}
                     stroke="#475569"
                     fontSize={10}
                     tickLine={false}
@@ -244,7 +231,7 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
                     axisLine={false}
                     domain={["dataMin - 10", "dataMax + 10"]}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={(props) => <CustomTooltip {...props} labelFormatter={xLabelFormatter} />} />
                   
                   {/* Guideline thresholds */}
                   <ReferenceLine y={140} stroke="#f43f5e" strokeDasharray="3 3" strokeWidth={1} label={{ value: "SYS haute (140)", fill: "#f43f5e", fontSize: 9, position: "insideBottomLeft" }} />
@@ -256,8 +243,8 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
                     name="Tension Systolique"
                     stroke="#059669"
                     strokeWidth={3}
-                    dot={{ r: 4, strokeWidth: 1 }}
-                    activeDot={{ r: 6 }}
+                    dot={{ r: 4, fill: '#059669', strokeWidth: 0 }}
+                    activeDot={{ r: 8, fill: '#059669', stroke: '#ffffff', strokeWidth: 3 }}
                   />
                   <Line
                     type="monotone"
@@ -265,8 +252,8 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
                     name="Tension Diastolique"
                     stroke="#34D399"
                     strokeWidth={3}
-                    dot={{ r: 4, strokeWidth: 1 }}
-                    activeDot={{ r: 6 }}
+                    dot={{ r: 4, fill: '#34D399', strokeWidth: 0 }}
+                    activeDot={{ r: 8, fill: '#34D399', stroke: '#ffffff', strokeWidth: 3 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -298,7 +285,8 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
                 <LineChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-natural-border)" />
                   <XAxis
-                    dataKey="displayName"
+                    dataKey="_idx"
+                    tickFormatter={xTickFormatter}
                     stroke="#475569"
                     fontSize={10}
                     tickLine={false}
@@ -312,7 +300,7 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
                     axisLine={false}
                     domain={["dataMin - 10", "dataMax + 10"]}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={(props) => <CustomTooltip {...props} labelFormatter={xLabelFormatter} />} />
                   
                   {/* Guideline thresholds */}
                   <ReferenceLine y={100} stroke="#ec4899" strokeDasharray="3 3" strokeWidth={1} label={{ value: "FC haute (100)", fill: "#ec4899", fontSize: 9, position: "insideBottomLeft" }} />
@@ -324,8 +312,8 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
                     name="Pouls / Rythme"
                     stroke="#475569"
                     strokeWidth={3}
-                    dot={{ r: 4, strokeWidth: 1 }}
-                    activeDot={{ r: 6 }}
+                    dot={{ r: 4, fill: '#475569', strokeWidth: 0 }}
+                    activeDot={{ r: 8, fill: '#475569', stroke: '#ffffff', strokeWidth: 3 }}
                   />
                 </LineChart>
               </ResponsiveContainer>

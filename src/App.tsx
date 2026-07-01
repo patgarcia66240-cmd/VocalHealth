@@ -12,7 +12,6 @@ import AddRecordForm from "./components/AddRecordForm";
 import StatsDashboard from "./components/StatsDashboard";
 import HistorySpreadsheet from "./components/HistorySpreadsheet";
 import Header from "./components/Header";
-import VoiceTips from "./components/VoiceTips";
 import PatientProfileWidget from "./components/PatientProfileWidget";
 import Footer from "./components/Footer";
 import { motion, AnimatePresence } from "motion/react";
@@ -171,7 +170,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-natural-bg text-natural-dark flex flex-col font-sans antialiased" id="main-app-container">
+    <div className="h-screen bg-natural-bg text-natural-dark flex flex-col font-sans antialiased overflow-hidden" id="main-app-container">
       {/* Top Banner / Header */}
       <Header
         onManualToggle={() => {
@@ -183,7 +182,7 @@ export default function App() {
       />
 
       {/* Main Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8" id="app-main-layout">
+      <main className="flex-1 max-w-[95%] w-full mx-auto p-3 sm:p-4 lg:p-6 space-y-4 overflow-y-auto" id="app-main-layout">
         {/* Active status indicator (e.g. speaking or analyzing) */}
         <AnimatePresence>
           {statusMessage && (
@@ -191,7 +190,7 @@ export default function App() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="bg-natural-primary text-white text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-2 justify-center font-semibold font-sans tracking-wide"
+              className="bg-gradient-to-r from-natural-primary to-natural-accent text-white text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-natural-primary/20 flex items-center gap-2 justify-center font-semibold font-sans tracking-wide backdrop-blur-sm"
               id="app-status-bar"
             >
               <RefreshCw className="h-4 w-4 animate-spin" />
@@ -207,55 +206,55 @@ export default function App() {
               initial={{ opacity: 0, y: -15, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -15, scale: 0.98 }}
-              className={`p-5 rounded-[24px] border flex gap-4 relative overflow-hidden transition-all ${
+              className={`p-4 rounded-2xl border flex gap-3 relative overflow-hidden transition-all shadow-lg backdrop-blur-sm ${
                 saveAlert.type === "danger"
-                  ? "bg-red-50/90 border-red-200 text-red-950 shadow-md ring-2 ring-red-500/10"
-                  : "bg-amber-50/90 border-amber-200 text-amber-950 shadow-md ring-2 ring-amber-500/10"
+                  ? "bg-gradient-to-r from-red-50/95 to-red-100/90 border-red-300 text-red-950 ring-2 ring-red-500/20"
+                  : "bg-gradient-to-r from-amber-50/95 to-amber-100/90 border-amber-300 text-amber-950 ring-2 ring-amber-500/20"
               }`}
               id="save-medical-alert-banner"
             >
-              <div className="mt-0.5 shrink-0 p-2 rounded-xl bg-white/60">
+              <div className="mt-0.5 shrink-0 p-2.5 rounded-xl bg-white/80 shadow-sm">
                 {saveAlert.type === "danger" ? (
-                  <ShieldAlert className="h-6 w-6 text-red-600" />
+                  <ShieldAlert className="h-5 w-5 text-red-600" />
                 ) : (
-                  <AlertTriangle className="h-6 w-6 text-amber-600" />
+                  <AlertTriangle className="h-5 w-5 text-amber-600" />
                 )}
               </div>
               <div className="space-y-2 pr-8 flex-1">
-                <h4 className="text-xs font-extrabold tracking-wide uppercase font-sans text-natural-primary flex flex-wrap items-center gap-2">
-                  <span>🚨 Notification d'attention médicale</span>
-                  <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                    saveAlert.type === "danger" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                <h4 className="text-xs font-extrabold tracking-wide uppercase font-sans flex flex-wrap items-center gap-2">
+                  <span>🚨 Alerte médicale</span>
+                  <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm ${
+                    saveAlert.type === "danger" ? "bg-red-500 text-white" : "bg-amber-500 text-white"
                   }`}>
-                    {saveAlert.type === "danger" ? "Alerte Élevée" : "Attention"}
+                    {saveAlert.type === "danger" ? "Urgent" : "Attention"}
                   </span>
                 </h4>
-                <p className="text-xs font-semibold leading-relaxed text-natural-primary">
-                  La mesure enregistrée présente des valeurs hors des limites recommandées :
+                <p className="text-xs font-semibold leading-relaxed">
+                  Valeurs hors recommandations :
                 </p>
-                <ul className="list-disc pl-5 text-xs space-y-1 font-sans text-natural-dark">
+                <ul className="list-disc pl-5 text-xs space-y-1 font-sans">
                   {saveAlert.messages.map((msg, idx) => (
                     <li key={idx} className="leading-relaxed">{msg}</li>
                   ))}
                 </ul>
-                <div className="text-[10.5px] leading-relaxed text-natural-secondary border-t border-natural-border/20 pt-2.5 mt-2.5">
-                  <strong>💡 Que faire maintenant ?</strong>
+                <div className="text-[10px] leading-relaxed text-natural-secondary/90 border-t border-natural-border/30 pt-2.5 mt-2.5">
+                  <strong>💡 Recommandations :</strong>
                   <ul className="list-decimal pl-4 mt-1.5 space-y-1">
-                    <li>Asseyez-vous confortablement, le dos soutenu, les pieds à plat sur le sol.</li>
-                    <li>Fermez les yeux, respirez lentement et profondément (inspiration 4s, expiration 6s) pendant 5 minutes.</li>
-                    <li>Ne consommez pas de café, thé, alcool ou tabac, et évitez de parler.</li>
-                    <li>Prenez une nouvelle mesure de contrôle après ce temps de calme.</li>
+                    <li>Asseyez-vous confortablement, dos soutenu</li>
+                    <li>Respirez lentement (inspiration 4s, expiration 6s)</li>
+                    <li>Évitez café, thé, alcool, tabac</li>
+                    <li>Prenez une nouvelle mesure après 5 min de calme</li>
                   </ul>
-                  <p className="mt-2 text-[9.5px] font-bold italic opacity-90">
-                    *Cette application est un assistant de suivi personnel et ne remplace pas l'avis d'un médecin. Si les alertes persistent ou s'accompagnent de symptômes (malaise, essoufflement, douleurs), contactez un médecin ou le 15.
+                  <p className="mt-2 text-[9px] font-bold italic opacity-80">
+                    *Cet assistant ne remplace pas un avis médical. En cas de symptômes, consultez.
                   </p>
                 </div>
               </div>
               
               <button
                 onClick={() => setSaveAlert(null)}
-                className="absolute top-4 right-4 p-1.5 hover:bg-white/80 rounded-xl transition-colors text-natural-secondary hover:text-natural-primary cursor-pointer border border-transparent hover:border-natural-border/30 shadow-sm"
-                title="Fermer la notification"
+                className="absolute top-3 right-3 p-1.5 hover:bg-white/90 rounded-xl transition-all text-natural-secondary hover:text-natural-primary cursor-pointer border border-transparent hover:border-natural-border/40 shadow-sm hover:shadow-md"
+                title="Fermer"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -264,14 +263,14 @@ export default function App() {
         </AnimatePresence>
 
         {/* Dashboard Grid - Two Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start relative">
+
           {/* Left Column: Voice input and validation form */}
-          <div className="lg:col-span-4 space-y-6">
-            
+          <div className="lg:col-span-5 xl:col-span-4 space-y-3">
+
             {/* Patient Profile Card */}
             <PatientProfileWidget onProfileChange={setPatientProfile} />
-            
+
             {/* Voice Input Engine */}
             <VoiceInput
               onParsedResult={(result) => {
@@ -281,28 +280,10 @@ export default function App() {
               onStatusChange={setStatusMessage}
             />
 
-            {/* Validation / Editing Form */}
-            <AnimatePresence mode="wait">
-              {showManualForm && (
-                <AddRecordForm
-                  key={parsedVoiceResult ? "voice" : "manual"}
-                  initialValues={parsedVoiceResult}
-                  onSave={handleSaveRecord}
-                  onCancel={() => {
-                    setShowManualForm(false);
-                    setParsedVoiceResult(null);
-                  }}
-                />
-              )}
-            </AnimatePresence>
-            
-            {/* Quick Helper Tips Card in Natural Tones design */}
-            <VoiceTips />
-
           </div>
 
-          {/* Right Column: Graphs & Statistics */}
-          <div className="lg:col-span-8 space-y-6">
+          {/* Right Column: Graphs & Statistics - Always visible */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-3">
             <StatsDashboard
               filteredRecords={filteredRecords}
               allRecords={records}
@@ -314,20 +295,20 @@ export default function App() {
         </div>
 
         {/* Full-width Spreadsheet Table */}
-        <div className="space-y-4">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <FileSpreadsheet className="h-5 w-5 text-natural-secondary" />
-              <h3 className="font-bold text-natural-primary text-base">Feuille de calcul interactive</h3>
+              <h3 className="font-bold text-natural-dark text-base">Historique des mesures</h3>
             </div>
-            
+
             {records.length > 0 && (
               <button
                 onClick={handleClearAll}
-                className="text-[10px] bg-natural-card hover:bg-natural-border text-natural-primary px-3.5 py-1.5 rounded-xl font-bold uppercase tracking-widest transition-all cursor-pointer border border-natural-border"
+                className="text-[10px] bg-gradient-to-r from-red-50 to-red-100/50 hover:from-red-100 hover:to-red-200 text-red-700 px-3.5 py-1.5 rounded-xl font-bold uppercase tracking-wider transition-all cursor-pointer border border-red-200 shadow-sm hover:shadow-md hover:scale-[1.02]"
                 id="clear-all-data-btn"
               >
-                Vider l'historique
+                🗑️ Vider
               </button>
             )}
           </div>
@@ -345,6 +326,45 @@ export default function App() {
 
       {/* Page Footer */}
       <Footer />
+
+      {/* Modal Overlay for Form - Appears on top of everything */}
+      <AnimatePresence>
+        {showManualForm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-natural-dark/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => {
+              setShowManualForm(false);
+              setParsedVoiceResult(null);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="w-full max-w-lg bg-gradient-to-br from-natural-surface to-natural-card/40 rounded-3xl border border-natural-border/50 shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <AddRecordForm
+                key={parsedVoiceResult ? "voice" : "manual"}
+                initialValues={parsedVoiceResult}
+                onSave={(record) => {
+                  handleSaveRecord(record);
+                  setShowManualForm(false);
+                  setParsedVoiceResult(null);
+                }}
+                onCancel={() => {
+                  setShowManualForm(false);
+                  setParsedVoiceResult(null);
+                }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -14,44 +14,39 @@ interface HeaderProps {
 
 export default function Header({ onManualToggle, theme, onThemeToggle }: HeaderProps) {
   return (
-    <header className="bg-natural-surface border-b border-natural-border shadow-sm sticky top-0 z-40" id="app-header">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-natural-primary text-white rounded-full shadow-md">
-            <HeartPulse className="h-5 w-5" />
+    <header className="bg-gradient-to-r from-natural-surface to-natural-card/30 border-b border-natural-border/50 shadow-sm sticky top-0 z-40 backdrop-blur-sm" id="app-header">
+      <div className="max-w-[95%] mx-auto px-3 sm:px-4 lg:px-6 h-14 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 bg-gradient-to-br from-natural-primary to-natural-accent text-white rounded-full shadow-md">
+            <HeartPulse className="h-4 w-4" />
           </div>
           <div>
-            <h1 className="text-base sm:text-lg font-bold text-natural-primary tracking-tight flex items-center gap-1.5" id="header-app-title">
-              VocalHealth <span className="text-[10px] bg-natural-bg text-natural-primary px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide">Tension &amp; Pouls</span>
+            <h1 className="text-sm sm:text-base font-bold text-natural-dark tracking-tight flex items-center gap-1.5" id="header-app-title">
+              VocalHealth <span className="text-[9px] bg-gradient-to-r from-natural-primary/10 to-natural-accent/10 text-natural-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-natural-primary/20">Médical</span>
             </h1>
-            <p className="text-[10px] sm:text-xs text-natural-secondary hidden sm:block">
-              Reconnaissance vocale médicale précise, sécurisée &amp; locale
+            <p className="text-[9px] sm:text-[10px] text-natural-secondary hidden sm:block font-medium">
+              Suivi tension & pouls par IA
             </p>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
-          <div className="hidden md:flex items-center gap-1.5 text-xs text-natural-primary bg-natural-bg border border-natural-border px-3 py-1 rounded-full font-semibold">
-            <ShieldCheck className="h-4 w-4 text-natural-primary" />
-            <span>Données médicales stockées localement en toute sécurité</span>
-          </div>
-          
           <button
             onClick={onThemeToggle}
-            className="p-2 border border-natural-border hover:bg-natural-bg rounded-xl text-natural-primary transition-colors cursor-pointer flex items-center justify-center"
-            title={theme === "light" ? "Passer au mode sombre adapté aux yeux" : "Passer au mode clair"}
+            className="p-2 border border-natural-border/50 hover:bg-natural-primary/5 rounded-xl text-natural-primary transition-all cursor-pointer flex items-center justify-center shadow-sm"
+            title={theme === "light" ? "Mode sombre" : "Mode clair"}
             id="header-theme-toggle"
           >
-            {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            {theme === "light" ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
           </button>
 
           <button
             onClick={onManualToggle}
-            className="px-3.5 py-1.5 text-xs font-bold border border-natural-border hover:bg-natural-bg rounded-xl text-natural-primary transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-1.5 text-xs font-bold border border-natural-border/50 hover:bg-natural-primary/5 rounded-xl text-natural-primary transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow-md"
             id="header-manual-toggle"
           >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Saisie Manuelle</span>
+            <Plus className="h-3 w-3" />
+            <span>Saisie</span>
           </button>
         </div>
       </div>
