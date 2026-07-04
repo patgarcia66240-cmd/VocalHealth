@@ -1,5 +1,5 @@
-import React from 'react';
 import type { TooltipContentProps } from 'recharts';
+
 
 /**
  * Custom tooltip for Recharts charts.
@@ -9,7 +9,9 @@ import type { TooltipContentProps } from 'recharts';
  * subtle backdrop blur and smooth rounded corners to match the overall
  * premium UI aesthetic of the application.
  */
-const CustomTooltip = ({ active, payload, label, labelFormatter }: TooltipContentProps<number, string> & { labelFormatter?: (val: any) => string }) => {
+type CustomTooltipProps = TooltipContentProps & { labelFormatter?: (val: unknown) => string };
+
+const CustomTooltip = ({ active, payload, label, labelFormatter }: CustomTooltipProps) => {
   if (!active || !payload || payload.length === 0) {
     return null;
   }
@@ -49,3 +51,4 @@ const CustomTooltip = ({ active, payload, label, labelFormatter }: TooltipConten
 };
 
 export default CustomTooltip;
+

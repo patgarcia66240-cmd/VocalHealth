@@ -4,10 +4,9 @@
  */
 
 import React, { useState } from "react";
-import { Download, Upload, Search, Trash2, Edit3, Calendar, FileSpreadsheet, ShieldAlert, FileText, Check, AlertTriangle, X } from "lucide-react";
-import { MeasurementRecord, PeriodFilter } from "../types";
-import { formatDateFr, classifyBloodPressure, checkMedicalThresholds } from "../utils";
-import { motion } from "motion/react";
+import { Download, Upload, Search, Trash2, Edit3, FileSpreadsheet, FileText, Check, AlertTriangle, X } from "lucide-react";
+import { MeasurementRecord, PeriodFilter, MedicalSettings } from "../types";
+import { formatDateFr, classifyBloodPressure } from "../utils";
 
 interface HistorySpreadsheetProps {
   records: MeasurementRecord[];
@@ -16,6 +15,7 @@ interface HistorySpreadsheetProps {
   onDeleteRecord: (id: string) => void;
   onEditRecord?: (record: MeasurementRecord) => void;
   onImportRecords: (imported: MeasurementRecord[]) => void;
+  settings: MedicalSettings;
 }
 
 export default function HistorySpreadsheet({
@@ -25,6 +25,7 @@ export default function HistorySpreadsheet({
   onDeleteRecord,
   onEditRecord,
   onImportRecords,
+  settings,
 }: HistorySpreadsheetProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export default function HistorySpreadsheet({
   const [inlineSys, setInlineSys] = useState<number>(120);
   const [inlineDia, setInlineDia] = useState<number>(80);
   const [inlinePulse, setInlinePulse] = useState<number>(70);
+  const [inlineSpo2, setInlineSpo2] = useState<number>(98);
   const [inlineRemarks, setInlineRemarks] = useState<string>("");
 
   const handleStartInlineEdit = (r: MeasurementRecord) => {
@@ -40,6 +42,7 @@ export default function HistorySpreadsheet({
     setInlineSys(r.systolic);
     setInlineDia(r.diastolic);
     setInlinePulse(r.pulse);
+    setInlineSpo2(r.spo2 ?? 98);
     setInlineRemarks(r.remarks || "");
   };
 
@@ -50,6 +53,7 @@ export default function HistorySpreadsheet({
         systolic: inlineSys,
         diastolic: inlineDia,
         pulse: inlinePulse,
+        spo2: settings.spo2Enabled ? inlineSpo2 : undefined,
         remarks: inlineRemarks,
       });
     }
@@ -61,7 +65,7 @@ export default function HistorySpreadsheet({
     if (records.length === 0) return;
     
     // Header
-    const headers = ["ID", "Date & Heure", "Systolique (mmHg)", "Diastolique (mmHg)", "Pouls (bpm)", "Classification", "Remarques"];
+    const headers = ["ID", "Date & Heure", "Systolique (mmHg)", "Diastolique (mmHg)", "Pouls (bpm)", "SpO2 (%)", "Classification", "Remarques"];
     
     // Rows
     const rows = records.map(r => {
@@ -72,6 +76,7 @@ export default function HistorySpreadsheet({
         r.systolic,
         r.diastolic,
         r.pulse,
+        r.spo2 ?? "",
         cls.category,
         r.remarks || ""
       ];
@@ -119,6 +124,7 @@ export default function HistorySpreadsheet({
             systolic: item.systolic,
             diastolic: item.diastolic,
             pulse: item.pulse,
+            spo2: typeof item.spo2 === "number" ? item.spo2 : undefined,
             remarks: item.remarks || ""
           }));
           
@@ -144,13 +150,14 @@ export default function HistorySpreadsheet({
     const remarksMatch = (r.remarks || "").toLowerCase().includes(term);
     const dateMatch = formatDateFr(r.timestamp, true).toLowerCase().includes(term);
     const classification = classifyBloodPressure(r.systolic, r.diastolic).category.toLowerCase();
+    const spo2Match = typeof r.spo2 === "number" ? String(r.spo2).includes(term) : false;
     const classMatch = classification.includes(term);
     
-    return remarksMatch || dateMatch || classMatch;
+    return remarksMatch || dateMatch || classMatch || spo2Match;
   });
 
   return (
-    <div className="bg-natural-surface rounded-[32px] border border-natural-border shadow-sm overflow-hidden" id="spreadsheet-container">
+    <div className="bg-natural-surface rounded-4xl border border-natural-border shadow-sm overflow-hidden" id="spreadsheet-container">
       {/* Header and Toolbar */}
       <div className="p-6 border-b border-natural-border bg-natural-bg/50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
@@ -237,22 +244,23 @@ export default function HistorySpreadsheet({
 
       {/* Spreadsheet Table */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse" id="spreadsheet-table">
+        <table className="w-full text-left border-collapse" id="spreadsheet-table" role="table" aria-label="Historique des mesures de tension, pouls et saturation">
           <thead>
-            <tr className="border-b border-natural-border bg-natural-bg/25 text-[9px] font-bold text-natural-secondary uppercase tracking-widest font-mono">
-              <th className="py-3 px-6">Date & Heure</th>
-              <th className="py-3 px-4 text-center">Systolique (SYS)</th>
-              <th className="py-3 px-4 text-center">Diastolique (DIA)</th>
-              <th className="py-3 px-4 text-center">Pouls (FC)</th>
-              <th className="py-3 px-4">Classification</th>
-              <th className="py-3 px-6 w-1/3">Remarques & Commentaires</th>
-              <th className="py-3 px-6 text-right">Actions</th>
+            <tr className="border-b border-natural-border bg-natural-bg/25 text-[9px] font-bold text-natural-secondary uppercase tracking-widest font-mono" role="row">
+              <th className="py-3 px-6" scope="col" id="col-date">Date & Heure</th>
+              <th className="py-3 px-4 text-center" scope="col" id="col-sys">Systolique (SYS)</th>
+              <th className="py-3 px-4 text-center" scope="col" id="col-dia">Diastolique (DIA)</th>
+              <th className="py-3 px-4 text-center" scope="col" id="col-pulse">Pouls (FC)</th>
+              {settings.spo2Enabled && <th className="py-3 px-4 text-center" scope="col" id="col-spo2">SpO2</th>}
+              <th className="py-3 px-4" scope="col" id="col-class">Classification</th>
+              <th className="py-3 px-6 w-1/3" scope="col" id="col-remarks">Remarques & Commentaires</th>
+              <th className="py-3 px-6 text-right" scope="col" id="col-actions">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-natural-border text-xs text-natural-dark">
+          <tbody className="divide-y divide-natural-border text-xs text-natural-dark" role="rowgroup">
             {filteredRecords.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-12 text-center text-natural-secondary">
+              <tr role="row">
+                <td colSpan={settings.spo2Enabled ? 8 : 7} className="py-12 text-center text-natural-secondary" role="cell">
                   <FileText className="h-8 w-8 mx-auto mb-2 text-natural-secondary/50" />
                   <p className="font-bold">Aucune mesure enregistrée pour ce filtre</p>
                   <p className="text-[11px] mt-0.5">Utilisez la commande vocale ou l'enregistrement manuel ci-dessus !</p>
@@ -262,35 +270,42 @@ export default function HistorySpreadsheet({
               filteredRecords.map((r) => {
                 const isEditing = editingRowId === r.id;
                 const cls = classifyBloodPressure(r.systolic, r.diastolic);
-                
+
                 // Real-time medical threshold checks
-                const isSysAbnormal = r.systolic >= 140 || r.systolic <= 90;
-                const sysColor = r.systolic >= 180 ? "text-red-600 font-extrabold" : r.systolic >= 140 ? "text-rose-500" : r.systolic <= 90 ? "text-blue-500" : "text-natural-primary";
-                
-                const isDiaAbnormal = r.diastolic >= 90 || r.diastolic <= 60;
-                const diaColor = r.diastolic >= 110 ? "text-red-600 font-extrabold" : r.diastolic >= 90 ? "text-rose-500" : r.diastolic <= 60 ? "text-blue-500" : "text-natural-primary";
-                
-                const isPulseAbnormal = r.pulse >= 100 || r.pulse <= 50;
-                const pulseColor = r.pulse >= 120 ? "text-red-600 font-extrabold" : r.pulse >= 100 ? "text-rose-500" : r.pulse <= 50 ? "text-blue-500" : "text-natural-primary";
+                const isSysAbnormal = r.systolic >= settings.systolicHigh || r.systolic <= settings.systolicLow;
+                const sysColor = r.systolic >= settings.systolicHigh + 40 ? "text-red-600 font-extrabold" : r.systolic >= settings.systolicHigh ? "text-rose-500" : r.systolic <= settings.systolicLow ? "text-blue-500" : "text-natural-primary";
+
+                const isDiaAbnormal = r.diastolic >= settings.diastolicHigh || r.diastolic <= settings.diastolicLow;
+                const diaColor = r.diastolic >= settings.diastolicHigh + 20 ? "text-red-600 font-extrabold" : r.diastolic >= settings.diastolicHigh ? "text-rose-500" : r.diastolic <= settings.diastolicLow ? "text-blue-500" : "text-natural-primary";
+
+                const isPulseAbnormal = r.pulse >= settings.pulseHigh || r.pulse <= settings.pulseLow;
+                const pulseColor = r.pulse >= settings.pulseHigh + 20 ? "text-red-600 font-extrabold" : r.pulse >= settings.pulseHigh ? "text-rose-500" : r.pulse <= settings.pulseLow ? "text-blue-500" : "text-natural-primary";
+
+                const isSpo2Abnormal = settings.spo2Enabled && typeof r.spo2 === "number" && r.spo2 <= settings.spo2Low;
+                const spo2Color = r.spo2 !== undefined && r.spo2 <= settings.spo2Low ? "text-amber-600 font-extrabold" : "text-natural-primary";
                 
                 return (
                   <tr
                     key={r.id}
                     className={`hover:bg-natural-bg/15 transition-colors ${isEditing ? "bg-natural-bg/40" : ""}`}
+                    role="row"
+                    aria-labelledby={`row-${r.id}`}
+                    aria-rowindex={filteredRecords.indexOf(r) + 1}
                   >
                     {/* Timestamp */}
-                    <td className="py-3.5 px-6 font-mono text-natural-secondary">
+                    <td className="py-3.5 px-6 font-mono text-natural-secondary" role="cell" headers="col-date">
                       {formatDateFr(r.timestamp, true)}
                     </td>
 
                     {/* Systolic */}
-                    <td className="py-3.5 px-4 text-center font-bold">
+                    <td className="py-3.5 px-4 text-center font-bold" role="cell" headers="col-sys">
                       {isEditing ? (
                         <input
                           type="number"
                           value={inlineSys}
                           onChange={(e) => setInlineSys(parseInt(e.target.value) || 0)}
                           className="w-16 px-1.5 py-1 border border-natural-border rounded-lg text-center focus:ring-1 focus:ring-natural-primary bg-natural-surface text-xs"
+                          aria-label={`Modifier la tension systolique pour la mesure du ${formatDateFr(r.timestamp, true)}`}
                         />
                       ) : (
                         <span className={`inline-flex items-center justify-center gap-1.5 font-bold ${sysColor}`}>
@@ -307,13 +322,14 @@ export default function HistorySpreadsheet({
                     </td>
 
                     {/* Diastolic */}
-                    <td className="py-3.5 px-4 text-center font-bold">
+                    <td className="py-3.5 px-4 text-center font-bold" role="cell" headers="col-dia">
                       {isEditing ? (
                         <input
                           type="number"
                           value={inlineDia}
                           onChange={(e) => setInlineDia(parseInt(e.target.value) || 0)}
                           className="w-16 px-1.5 py-1 border border-natural-border rounded-lg text-center focus:ring-1 focus:ring-natural-primary bg-natural-surface text-xs"
+                          aria-label={`Modifier la tension diastolique pour la mesure du ${formatDateFr(r.timestamp, true)}`}
                         />
                       ) : (
                         <span className={`inline-flex items-center justify-center gap-1.5 font-bold ${diaColor}`}>
@@ -330,13 +346,14 @@ export default function HistorySpreadsheet({
                     </td>
 
                     {/* Pulse */}
-                    <td className="py-3.5 px-4 text-center font-mono">
+                    <td className="py-3.5 px-4 text-center font-mono" role="cell" headers="col-pulse">
                       {isEditing ? (
                         <input
                           type="number"
                           value={inlinePulse}
                           onChange={(e) => setInlinePulse(parseInt(e.target.value) || 0)}
                           className="w-16 px-1.5 py-1 border border-natural-border rounded-lg text-center focus:ring-1 focus:ring-natural-primary bg-natural-surface text-xs"
+                          aria-label={`Modifier le pouls pour la mesure du ${formatDateFr(r.timestamp, true)}`}
                         />
                       ) : (
                         <span className={`inline-flex items-center justify-center gap-1.5 font-bold ${pulseColor}`}>
@@ -352,8 +369,30 @@ export default function HistorySpreadsheet({
                       )}
                     </td>
 
+                    {settings.spo2Enabled && (
+                      <td className="py-3.5 px-4 text-center font-mono" role="cell" headers="col-spo2">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={inlineSpo2}
+                            onChange={(e) => setInlineSpo2(parseInt(e.target.value) || 0)}
+                            className="w-16 px-1.5 py-1 border border-natural-border rounded-lg text-center focus:ring-1 focus:ring-natural-primary bg-natural-surface text-xs"
+                            aria-label={`Modifier la saturation en oxyg?ne pour la mesure du ${formatDateFr(r.timestamp, true)}`}
+                          />
+                        ) : (
+                          <span className={`inline-flex items-center justify-center gap-1.5 font-bold ${spo2Color}`}>
+                            <span>{r.spo2 ?? "?"}</span>
+                            <span className="text-[10px] text-natural-secondary font-normal font-sans">%</span>
+                            {isSpo2Abnormal && (
+                              <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" title={`SpO? basse (${settings.spo2Low}%)`} />
+                            )}
+                          </span>
+                        )}
+                      </td>
+                    )}
+
                     {/* Classification */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4" role="cell" headers="col-class">
                       {isEditing ? (
                         <span className="text-[11px] text-natural-secondary italic">Calculé</span>
                       ) : (
@@ -361,7 +400,7 @@ export default function HistorySpreadsheet({
                           <span className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border border-natural-border/30 ${cls.bgColor} ${cls.color}`}>
                             {cls.category}
                           </span>
-                          {(isSysAbnormal || isDiaAbnormal || isPulseAbnormal) && (
+                          {(isSysAbnormal || isDiaAbnormal || isPulseAbnormal || isSpo2Abnormal) && (
                             <span className="text-amber-500 font-bold text-xs shrink-0" title="Une ou plusieurs constantes dépassent les recommandations normales">⚠️</span>
                           )}
                         </div>
@@ -369,13 +408,14 @@ export default function HistorySpreadsheet({
                     </td>
 
                     {/* Remarks */}
-                    <td className="py-3.5 px-6 text-natural-dark font-sans">
+                    <td className="py-3.5 px-6 text-natural-dark font-sans" role="cell" headers="col-remarks">
                       {isEditing ? (
                         <input
                           type="text"
                           value={inlineRemarks}
                           onChange={(e) => setInlineRemarks(e.target.value)}
                           className="w-full px-2.5 py-1 border border-natural-border rounded-lg focus:ring-1 focus:ring-natural-primary bg-natural-surface text-xs"
+                          aria-label={`Modifier les remarques pour la mesure du ${formatDateFr(r.timestamp, true)}`}
                         />
                       ) : (
                         <span className="italic block max-w-sm truncate" title={r.remarks}>
@@ -385,7 +425,7 @@ export default function HistorySpreadsheet({
                     </td>
 
                     {/* Actions */}
-                    <td className="py-3.5 px-6 text-right">
+                    <td className="py-3.5 px-6 text-right" role="cell" headers="col-actions">
                       <div className="flex items-center justify-end gap-2">
                         {isEditing ? (
                           <>
@@ -393,6 +433,7 @@ export default function HistorySpreadsheet({
                               onClick={() => handleSaveInlineEdit(r)}
                               className="p-1.5 hover:bg-natural-bg text-natural-primary rounded-lg transition-all cursor-pointer"
                               title="Sauvegarder"
+                              aria-label={`Sauvegarder les modifications de la mesure du ${formatDateFr(r.timestamp, true)}`}
                             >
                               <Check className="h-4 w-4" />
                             </button>
@@ -400,6 +441,7 @@ export default function HistorySpreadsheet({
                               onClick={() => setEditingRowId(null)}
                               className="p-1.5 hover:bg-rose-50 text-rose-700 rounded-lg transition-all cursor-pointer"
                               title="Annuler"
+                              aria-label={`Annuler les modifications de la mesure du ${formatDateFr(r.timestamp, true)}`}
                             >
                               <X className="h-4 w-4" />
                             </button>
@@ -410,6 +452,7 @@ export default function HistorySpreadsheet({
                               onClick={() => handleStartInlineEdit(r)}
                               className="p-1.5 hover:bg-natural-bg text-natural-secondary hover:text-natural-primary rounded-lg transition-all cursor-pointer"
                               title="Modifier"
+                              aria-label={`Modifier la mesure du ${formatDateFr(r.timestamp, true)}`}
                             >
                               <Edit3 className="h-3.5 w-3.5" />
                             </button>
@@ -421,6 +464,7 @@ export default function HistorySpreadsheet({
                               }}
                               className="p-1.5 hover:bg-rose-50/50 text-natural-secondary hover:text-rose-600 rounded-lg transition-all cursor-pointer"
                               title="Supprimer"
+                              aria-label={`Supprimer la mesure du ${formatDateFr(r.timestamp, true)}`}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>

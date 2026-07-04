@@ -10,6 +10,16 @@ const STORE_NAME = "records";
 const DB_VERSION = 1;
 
 /**
+ * Custom error class for database operations
+ */
+export class DatabaseError extends Error {
+  constructor(message: string, public cause?: Error) {
+    super(message);
+    this.name = 'DatabaseError';
+  }
+}
+
+/**
  * Open/Initialize connection to IndexedDB
  */
 export function openDB(): Promise<IDBDatabase> {
@@ -35,6 +45,7 @@ export function openDB(): Promise<IDBDatabase> {
 
 /**
  * Load all stored blood pressure records
+ * @throws {DatabaseError} If the database cannot be accessed or read operation fails
  */
 export async function getAllRecords(): Promise<MeasurementRecord[]> {
   try {
@@ -49,17 +60,17 @@ export async function getAllRecords(): Promise<MeasurementRecord[]> {
       };
 
       request.onerror = () => {
-        reject(request.error);
+        reject(new DatabaseError("Failed to read records from IndexedDB", request.error || undefined));
       };
     });
   } catch (error) {
-    console.error("Failed to read from IndexedDB:", error);
-    return [];
+    throw new DatabaseError("Failed to open database for reading", error instanceof Error ? error : undefined);
   }
 }
 
 /**
  * Insert or update a single record in the database
+ * @throws {DatabaseError} If the save operation fails
  */
 export async function saveRecord(record: MeasurementRecord): Promise<void> {
   try {
@@ -70,15 +81,16 @@ export async function saveRecord(record: MeasurementRecord): Promise<void> {
       const request = store.put(record);
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      request.onerror = () => reject(new DatabaseError("Failed to save record to IndexedDB", request.error || undefined));
     });
   } catch (error) {
-    console.error("Failed to save to IndexedDB:", error);
+    throw new DatabaseError("Failed to open database for writing", error instanceof Error ? error : undefined);
   }
 }
 
 /**
  * Delete a single record from the database by ID
+ * @throws {DatabaseError} If the delete operation fails
  */
 export async function deleteRecord(id: string): Promise<void> {
   try {
@@ -89,15 +101,16 @@ export async function deleteRecord(id: string): Promise<void> {
       const request = store.delete(id);
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      request.onerror = () => reject(new DatabaseError("Failed to delete record from IndexedDB", request.error || undefined));
     });
   } catch (error) {
-    console.error("Failed to delete from IndexedDB:", error);
+    throw new DatabaseError("Failed to open database for deletion", error instanceof Error ? error : undefined);
   }
 }
 
 /**
  * Clear all records from the database
+ * @throws {DatabaseError} If the clear operation fails
  */
 export async function clearAllRecords(): Promise<void> {
   try {
@@ -108,23 +121,28 @@ export async function clearAllRecords(): Promise<void> {
       const request = store.clear();
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      request.onerror = () => reject(new DatabaseError("Failed to clear records from IndexedDB", request.error || undefined));
     });
   } catch (error) {
-    console.error("Failed to clear IndexedDB:", error);
+    throw new DatabaseError("Failed to open database for clearing", error instanceof Error ? error : undefined);
   }
 }
 
 /**
  * Save multiple records to the database sequentially (for backups or bulk updates)
+ * @throws {DatabaseError} If any save operation fails
  */
 export async function saveMultipleRecords(records: MeasurementRecord[]): Promise<void> {
+  if (records.length === 0) {
+    return;
+  }
+
   try {
     const db = await openDB();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, "readwrite");
       const store = transaction.objectStore(STORE_NAME);
-      
+
       let index = 0;
       function putNext() {
         if (index < records.length) {
@@ -133,7 +151,7 @@ export async function saveMultipleRecords(records: MeasurementRecord[]): Promise
             index++;
             putNext();
           };
-          req.onerror = () => reject(req.error);
+          req.onerror = () => reject(new DatabaseError(`Failed to save record ${index + 1}/${records.length} to IndexedDB`, req.error || undefined));
         } else {
           resolve();
         }
@@ -141,6 +159,6 @@ export async function saveMultipleRecords(records: MeasurementRecord[]): Promise
       putNext();
     });
   } catch (error) {
-    console.error("Failed to save multiple records to IndexedDB:", error);
+    throw new DatabaseError("Failed to open database for bulk write", error instanceof Error ? error : undefined);
   }
 }

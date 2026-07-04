@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { Plus, Heart, HeartPulse, Sparkles, RefreshCw, X, MessageSquare, Calendar, Clock, AlertTriangle, ShieldAlert } from "lucide-react";
-import { ParsedVoiceResult, MeasurementRecord } from "../types";
+import { Plus, Heart, HeartPulse, Droplets, Sparkles, X, MessageSquare, Calendar, Clock, AlertTriangle, ShieldAlert } from "lucide-react";
+import { ParsedVoiceResult, MeasurementRecord, MedicalSettings } from "../types";
 import { classifyBloodPressure, checkMedicalThresholds } from "../utils";
 import { motion } from "motion/react";
 
@@ -14,12 +14,14 @@ interface AddRecordFormProps {
   initialValues: ParsedVoiceResult | null;
   onSave: (record: Omit<MeasurementRecord, "id">) => void;
   onCancel?: () => void;
+  settings: MedicalSettings;
 }
 
-export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRecordFormProps) {
+export default function AddRecordForm({ initialValues, onSave, onCancel, settings }: AddRecordFormProps) {
   const [systolic, setSystolic] = useState<number>(120);
   const [diastolic, setDiastolic] = useState<number>(80);
   const [pulse, setPulse] = useState<number>(70);
+  const [spo2, setSpo2] = useState<number>(98);
   const [remarks, setRemarks] = useState<string>("");
   const [date, setDate] = useState<string>("");
   const [time, setTime] = useState<string>("");
@@ -30,6 +32,7 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
       if (initialValues.systolic !== null) setSystolic(initialValues.systolic);
       if (initialValues.diastolic !== null) setDiastolic(initialValues.diastolic);
       if (initialValues.pulse !== null) setPulse(initialValues.pulse);
+      if (initialValues.spo2 !== null) setSpo2(initialValues.spo2);
       setRemarks(initialValues.remarks || "");
     }
     
@@ -42,7 +45,7 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
   }, [initialValues]);
 
   const classification = classifyBloodPressure(systolic, diastolic);
-  const alertInfo = checkMedicalThresholds(systolic, diastolic, pulse);
+  const alertInfo = checkMedicalThresholds(systolic, diastolic, pulse, settings.spo2Enabled ? spo2 : undefined, settings);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +58,7 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
       systolic,
       diastolic,
       pulse,
+      spo2: settings.spo2Enabled ? spo2 : undefined,
       remarks: remarks.trim()
     });
 
@@ -67,20 +71,20 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
       <div className="p-6 border-b border-natural-border/40">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-natural-primary/15 to-natural-accent/15 text-natural-primary rounded-2xl shadow-md">
+            <div className="p-3 bg-linear-to-br from-natural-primary/15 to-natural-accent/15 text-natural-primary rounded-2xl shadow-md">
               <Heart className="h-6 w-6" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-natural-dark tracking-tight" id="form-title">
                 {initialValues ? "Validation des mesures" : "Nouvelle mesure"}
               </h2>
-              <p className="text-[11px] text-natural-secondary">
+              <p className="text-sm text-natural-secondary">
                 {initialValues ? "L'IA a extrait ces valeurs" : "Entrez vos paramètres"}
               </p>
             </div>
           </div>
           {initialValues && (
-            <div className="flex items-center gap-1.5 bg-gradient-to-r from-natural-primary/10 to-natural-accent/10 text-natural-primary px-3 py-1.5 rounded-full text-xs font-bold border border-natural-primary/20 shadow-sm">
+            <div className="flex items-center gap-1.5 bg-linear-to-r from-natural-primary/10 to-natural-accent/10 text-natural-primary px-3 py-1.5 rounded-full text-xs font-bold border border-natural-primary/20 shadow-sm">
               <Sparkles className="h-3.5 w-3.5" />
               <span>IA</span>
             </div>
@@ -92,13 +96,13 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
         {/* Blood Pressure Inputs */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Systolic */}
-          <div className="space-y-2 bg-gradient-to-br from-natural-primary/5 to-natural-accent/5 p-4 rounded-xl border border-natural-border/40 shadow-sm">
+          <div className="space-y-2 bg-linear-to-br from-natural-primary/5 to-natural-accent/5 p-4 rounded-xl border border-natural-border/40 shadow-sm">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-bold text-natural-dark uppercase tracking-wider">
+              <label className="text-xs font-bold text-natural-dark uppercase tracking-wider">
                 Systolique
               </label>
               <span className="text-lg font-bold text-natural-primary font-mono">
-                {systolic} <span className="text-[10px] text-natural-secondary font-normal font-sans">mmHg</span>
+                {systolic} <span className="text-xs text-natural-secondary font-normal font-sans">mmHg</span>
               </span>
             </div>
             <input
@@ -119,11 +123,11 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
           {/* Diastolic */}
           <div className="space-y-2 bg-natural-bg/30 p-4 rounded-2xl border border-natural-border/70">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-bold text-natural-secondary uppercase tracking-widest">
+              <label className="text-xs font-bold text-natural-secondary uppercase tracking-widest">
                 Diastolique (DIA)
               </label>
               <span className="text-lg font-bold text-natural-primary font-mono">
-                {diastolic} <span className="text-[10px] text-natural-secondary font-normal font-sans">mmHg</span>
+                {diastolic} <span className="text-xs text-natural-secondary font-normal font-sans">mmHg</span>
               </span>
             </div>
             <input
@@ -134,7 +138,7 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
               onChange={(e) => setDiastolic(parseInt(e.target.value))}
               className="w-full h-1.5 bg-natural-border rounded-lg appearance-none cursor-pointer accent-natural-primary"
             />
-            <div className="flex justify-between text-[10px] text-natural-secondary font-mono">
+            <div className="flex justify-between text-xs text-natural-secondary font-mono">
               <span>40 (Basse)</span>
               <span>80 (Idéal)</span>
               <span>130 (Élevée)</span>
@@ -145,7 +149,7 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
         {/* Dynamic WHO Classification Banner */}
         <div className={`p-4 rounded-2xl border ${classification.bgColor} transition-all`}>
           <div className="flex justify-between items-center mb-1.5">
-            <span className="text-[10px] uppercase tracking-widest font-bold">Classification OMS</span>
+            <span className="text-xs uppercase tracking-widest font-bold">Classification OMS</span>
             <span className={`text-xs font-bold ${classification.color}`}>{classification.category}</span>
           </div>
           <p className="text-xs opacity-90 leading-relaxed font-sans">{classification.description}</p>
@@ -170,7 +174,7 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
               )}
             </div>
             <div className="space-y-1.5">
-              <span className="text-[10px] uppercase tracking-widest font-bold font-sans block text-natural-primary">
+              <span className="text-xs uppercase tracking-widest font-bold font-sans block text-natural-primary">
                 ⚠️ Seuil d'attention recommandé dépassé
               </span>
               <ul className="list-disc pl-4 text-xs space-y-1 font-sans text-natural-dark">
@@ -178,7 +182,7 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
                   <li key={idx} className="leading-relaxed">{msg}</li>
                 ))}
               </ul>
-              <p className="text-[10px] text-natural-secondary leading-relaxed pt-0.5">
+              <p className="text-xs text-natural-secondary leading-relaxed pt-0.5">
                 <strong>Conseil médical général :</strong> Restez assis au calme pendant 5 minutes sans parler avant de renouveler la mesure. Évitez l'effort, la caféine ou le tabac dans l'heure précédant le test. Si ces valeurs élevées/basses persistent ou si vous présentez des symptômes inhabituels (douleurs thoraciques, vertiges, essoufflements), parlez-en à un professionnel de santé.
               </p>
             </div>
@@ -186,10 +190,10 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
         )}
 
         {/* Pulse & Date Time Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className={`grid grid-cols-1 gap-3 ${settings.spo2Enabled ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
           {/* Heart rate / Pulse */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-natural-dark flex items-center gap-1 uppercase tracking-wider">
+            <label className="text-xs font-bold text-natural-dark flex items-center gap-1 uppercase tracking-wider">
               <HeartPulse className="h-3.5 w-3.5 text-natural-primary" />
               Pouls
             </label>
@@ -204,9 +208,26 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
             />
           </div>
 
+          {settings.spo2Enabled && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-natural-dark flex items-center gap-1 uppercase tracking-wider">
+                <Droplets className="h-3.5 w-3.5 text-natural-primary" />
+                Saturation SpO? <span className="text-natural-secondary normal-case font-normal">(optionnel)</span>
+              </label>
+              <input
+                type="number"
+                min="70"
+                max="100"
+                value={spo2}
+                onChange={(e) => setSpo2(parseInt(e.target.value) || 98)}
+                className="w-full px-3 py-2 border border-natural-border/50 rounded-xl text-xs text-natural-dark focus:outline-none focus:ring-2 focus:ring-natural-primary/20 focus:border-natural-primary bg-white/80 backdrop-blur-sm font-mono font-bold shadow-sm transition-all"
+              />
+            </div>
+          )}
+
           {/* Date Picker */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-natural-dark flex items-center gap-1 uppercase tracking-wider">
+            <label className="text-xs font-bold text-natural-dark flex items-center gap-1 uppercase tracking-wider">
               <Calendar className="h-3.5 w-3.5 text-natural-secondary" />
               Date
             </label>
@@ -221,7 +242,7 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
 
           {/* Time Picker */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-natural-dark flex items-center gap-1 uppercase tracking-wider">
+            <label className="text-xs font-bold text-natural-dark flex items-center gap-1 uppercase tracking-wider">
               <Clock className="h-3.5 w-3.5 text-natural-secondary" />
               Heure
             </label>
@@ -237,7 +258,7 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
 
         {/* Remarks / Comments */}
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-natural-primary flex items-center gap-1 uppercase tracking-widest">
+          <label className="text-xs font-bold text-natural-primary flex items-center gap-1 uppercase tracking-widest">
             <MessageSquare className="h-3.5 w-3.5 text-natural-secondary" />
             Remarques & Commentaires
           </label>
@@ -265,7 +286,7 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
           )}
           <button
             type="submit"
-            className="px-6 py-2.5 bg-gradient-to-r from-natural-primary to-natural-accent hover:from-natural-primary/90 hover:to-natural-accent/90 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2 focus:outline-none cursor-pointer"
+            className="px-6 py-2.5 bg-linear-to-r from-natural-primary to-natural-accent hover:from-natural-primary/90 hover:to-natural-accent/90 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2 focus:outline-none cursor-pointer"
             id="save-record-btn"
           >
             <Plus className="h-4 w-4" />
@@ -275,7 +296,7 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
       </form>
 
       {/* Footer with action buttons */}
-      <div className="p-6 border-t border-natural-border/40 bg-gradient-to-r from-natural-card/20 to-natural-bg/20">
+      <div className="p-6 border-t border-natural-border/40 bg-linear-to-r from-natural-card/20 to-natural-bg/20">
         <div className="flex gap-3">
           <button
             type="button"
@@ -287,7 +308,7 @@ export default function AddRecordForm({ initialValues, onSave, onCancel }: AddRe
           </button>
           <button
             onClick={handleSubmit}
-            className="flex-1 px-6 py-2.5 bg-gradient-to-r from-natural-primary to-natural-accent hover:from-natural-primary/90 hover:to-natural-accent/90 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2 focus:outline-none cursor-pointer"
+            className="flex-1 px-6 py-2.5 bg-linear-to-r from-natural-primary to-natural-accent hover:from-natural-primary/90 hover:to-natural-accent/90 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2 focus:outline-none cursor-pointer"
             type="submit"
           >
             <Plus className="h-4 w-4" />

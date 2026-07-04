@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
+import { useMemo } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import CustomTooltip from "./CustomTooltip.tsx";
-import { Activity, Heart, ArrowUpRight, ArrowDownRight, Percent, Database, Info, UserCheck } from "lucide-react";
-import { MeasurementRecord, PeriodFilter, PatientProfile } from "../types";
+import { Activity, Heart, Percent, Database, UserCheck, Droplets } from "lucide-react";
+import { MeasurementRecord, PeriodFilter, PatientProfile, MedicalSettings } from "../types";
 import { calculateStats, formatDateFr, calculateAge } from "../utils";
 import { motion } from "motion/react";
 
@@ -19,12 +19,19 @@ interface StatsDashboardProps {
   allRecords: MeasurementRecord[];
   activePeriod: PeriodFilter;
   patientProfile?: PatientProfile | null;
+  settings: MedicalSettings;
 }
 
 
 
-export default function StatsDashboard({ filteredRecords, allRecords, activePeriod, patientProfile }: StatsDashboardProps) {
+export default function StatsDashboard({ filteredRecords, allRecords, activePeriod, patientProfile, settings }: StatsDashboardProps) {
   const stats = useMemo(() => calculateStats(filteredRecords), [filteredRecords]);
+
+  // Get the latest record (most recent) - last element of the array
+  const latestRecord = filteredRecords.length > 0 ? filteredRecords[filteredRecords.length - 1] : null;
+  const latestSys = latestRecord?.systolic ?? 0;
+  const latestDia = latestRecord?.diastolic ?? 0;
+  const latestPulse = latestRecord?.pulse ?? 0;
 
   // Format data specifically for Recharts
   const chartData = useMemo(() => {
@@ -48,15 +55,31 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
         systolique: r.systolic,
         diastolique: r.diastolic,
         pouls: r.pulse,
-        dateComplete: formatDateFr(r.timestamp, true)
+        dateComplete: formatDateFr(r.timestamp, true),
+        spo2: r.spo2,
       };
     });
   }, [filteredRecords, activePeriod]);
 
   // Helper to format X axis ticks from index
-  const xTickFormatter = (idx: number) => chartData[idx]?.displayName ?? '';
+  const xTickFormatter = (value: unknown) => {
+    if (typeof value === 'number') {
+      return chartData[value]?.displayName ?? '';
+    }
+    return String(value);
+  };
   // Helper for tooltip label
-  const xLabelFormatter = (idx: number) => chartData[idx]?.displayName ?? '';
+  const xLabelFormatter = (value: unknown) => {
+    if (typeof value === 'number') {
+      return chartData[value]?.displayName ?? '';
+    }
+    return String(value);
+  };
+
+  const spo2Values = useMemo(() => chartData.map((item) => item.spo2).filter((value): value is number => typeof value === "number"), [chartData]);
+  const averageSpo2 = spo2Values.length > 0 ? Math.round(spo2Values.reduce((total, value) => total + value, 0) / spo2Values.length) : null;
+  const latestSpo2 = spo2Values.length > 0 ? spo2Values[spo2Values.length - 1] : null;
+  const showSpo2Card = settings.spo2Enabled && spo2Values.length > 0;
 
   return (
     <div className="space-y-6" id="stats-dashboard">
@@ -65,7 +88,7 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-natural-surface border border-natural-border p-5 rounded-[32px] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+          className="bg-natural-surface border border-natural-border p-5 rounded-4xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
           id="patient-profile-dashboard-banner"
         >
           <div className="flex items-center gap-3.5">
@@ -100,7 +123,7 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
           </div>
         </motion.div>
       ) : (
-        <div className="bg-natural-surface/60 border border-dashed border-natural-border/80 p-5 rounded-[32px] shadow-sm flex items-center gap-3" id="patient-profile-dashboard-empty">
+        <div className="bg-natural-surface/60 border border-dashed border-natural-border/80 p-5 rounded-4xl shadow-sm flex items-center gap-3" id="patient-profile-dashboard-empty">
           <div className="p-2 bg-natural-primary/10 rounded-xl text-natural-primary">
             <UserCheck className="h-5 w-5 opacity-70" />
           </div>
@@ -112,18 +135,17 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Average Blood Pressure */}
-        <div className="bg-natural-surface p-6 rounded-[32px] border border-natural-border shadow-sm flex items-start justify-between">
+        {/* Card 1: Latest Blood Pressure */}
+        <div className="bg-natural-surface p-6 rounded-4xl border border-natural-border shadow-sm flex items-start justify-between">
           <div className="space-y-1">
-            <p className="text-[10px] text-natural-secondary font-bold uppercase tracking-widest">Moyenne Tension</p>
             <div className="flex items-baseline gap-1">
               <span className="text-2xl font-bold text-natural-primary font-mono">
-                {stats.avgSys}/{stats.avgDia}
+                {latestSys}/{latestDia}
               </span>
               <span className="text-[10px] text-natural-secondary font-mono font-bold">mmHg</span>
             </div>
             <p className="text-[10px] text-natural-secondary flex items-center gap-1">
-              {stats.avgSys >= 140 || stats.avgDia >= 90 ? (
+              {latestSys >= 140 || latestDia >= 90 ? (
                 <span className="text-rose-600 font-bold">⚠️ Élevée</span>
               ) : (
                 <span className="text-natural-primary font-bold">✓ Optimale</span>
@@ -135,12 +157,11 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
           </div>
         </div>
 
-        {/* Card 2: Average Pulse / Heart rate */}
-        <div className="bg-natural-surface p-6 rounded-[32px] border border-natural-border shadow-sm flex items-start justify-between">
+        {/* Card 2: Latest Pulse / Heart rate */}
+        <div className="bg-natural-surface p-6 rounded-4xl border border-natural-border shadow-sm flex items-start justify-between">
           <div className="space-y-1">
-            <p className="text-[10px] text-natural-secondary font-bold uppercase tracking-widest">Moyenne Pouls</p>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-natural-primary font-mono">{stats.avgPulse}</span>
+              <span className="text-2xl font-bold text-natural-primary font-mono">{latestPulse}</span>
               <span className="text-[10px] text-natural-secondary font-mono font-bold">bpm</span>
             </div>
             <p className="text-[10px] text-natural-secondary font-mono">
@@ -153,15 +174,14 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
         </div>
 
         {/* Card 3: Target Stability Percentage */}
-        <div className="bg-natural-surface p-6 rounded-[32px] border border-natural-border shadow-sm flex items-start justify-between">
+        <div className="bg-natural-surface p-6 rounded-4xl border border-natural-border shadow-sm flex items-start justify-between">
           <div className="space-y-1">
-            <p className="text-[10px] text-natural-secondary font-bold uppercase tracking-widest">Stabilité Idéale</p>
             <div className="flex items-baseline gap-1">
               <span className="text-2xl font-bold text-natural-primary font-mono">{stats.normalPercent}%</span>
               <span className="text-[10px] text-natural-secondary font-mono font-bold">des mesures</span>
             </div>
             <p className="text-[10px] text-natural-secondary leading-tight">
-              Cible &lt; 130/85 mmHg
+              Cible &lt; {settings.systolicHigh}/{settings.diastolicHigh} mmHg
             </p>
           </div>
           <div className="p-2.5 bg-natural-bg text-natural-primary border border-natural-border/60 rounded-xl">
@@ -170,9 +190,8 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
         </div>
 
         {/* Card 4: Log count */}
-        <div className="bg-natural-surface p-6 rounded-[32px] border border-natural-border shadow-sm flex items-start justify-between">
+        <div className="bg-natural-surface p-6 rounded-4xl border border-natural-border shadow-sm flex items-start justify-between">
           <div className="space-y-1">
-            <p className="text-[10px] text-natural-secondary font-bold uppercase tracking-widest">Total Saisies</p>
             <div className="flex items-baseline gap-1">
               <span className="text-2xl font-bold text-natural-primary font-mono">{stats.totalCount}</span>
               <span className="text-[10px] text-natural-secondary font-normal font-sans">filtrées</span>
@@ -185,12 +204,27 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
             <Database className="h-5 w-5" />
           </div>
         </div>
+
+        {showSpo2Card && (
+          <div className="bg-natural-surface p-6 rounded-4xl border border-natural-border shadow-sm flex items-start justify-between">
+            <div className="space-y-1">
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold text-natural-primary font-mono">{averageSpo2}</span>
+                <span className="text-[10px] text-natural-secondary font-mono font-bold">%</span>
+              </div>
+              <p className="text-[10px] text-natural-secondary font-mono">Derni?re mesure: {latestSpo2}%</p>
+            </div>
+            <div className="p-2.5 bg-natural-bg text-natural-primary rounded-xl">
+              <Droplets className="h-5 w-5" />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main charts area */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Tension Artérielle Trends Chart */}
-        <div className="bg-natural-surface rounded-[32px] border border-natural-border p-6 shadow-sm space-y-4">
+        <div className="bg-natural-surface rounded-4xl border border-natural-border p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-bold text-natural-primary text-sm">Évolution de la Tension</h3>
@@ -234,8 +268,10 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
                   <Tooltip content={(props) => <CustomTooltip {...props} labelFormatter={xLabelFormatter} />} />
                   
                   {/* Guideline thresholds */}
-                  <ReferenceLine y={140} stroke="#f43f5e" strokeDasharray="3 3" strokeWidth={1} label={{ value: "SYS haute (140)", fill: "#f43f5e", fontSize: 9, position: "insideBottomLeft" }} />
-                  <ReferenceLine y={90} stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={1} label={{ value: "DIA haute (90)", fill: "#f59e0b", fontSize: 9, position: "insideBottomLeft" }} />
+                  <ReferenceLine y={settings.systolicHigh} stroke="#f43f5e" strokeDasharray="3 3" strokeWidth={1} label={{ value: `SYS haute (${settings.systolicHigh})`, fill: "#f43f5e", fontSize: 9, position: "insideBottomLeft" }} />
+                  <ReferenceLine y={settings.systolicLow} stroke="#0ea5e9" strokeDasharray="3 3" strokeWidth={1} label={{ value: `SYS basse (${settings.systolicLow})`, fill: "#0ea5e9", fontSize: 9, position: "insideBottomLeft" }} />
+                  <ReferenceLine y={settings.diastolicHigh} stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={1} label={{ value: `DIA haute (${settings.diastolicHigh})`, fill: "#f59e0b", fontSize: 9, position: "insideBottomLeft" }} />
+                  <ReferenceLine y={settings.diastolicLow} stroke="#38bdf8" strokeDasharray="3 3" strokeWidth={1} label={{ value: `DIA basse (${settings.diastolicLow})`, fill: "#38bdf8", fontSize: 9, position: "insideBottomLeft" }} />
 
                   <Line
                     type="monotone"
@@ -262,7 +298,7 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
         </div>
 
         {/* Pouls (Heart Rate) Trends Chart */}
-        <div className="bg-natural-surface rounded-[32px] border border-natural-border p-6 shadow-sm space-y-4">
+        <div className="bg-natural-surface rounded-4xl border border-natural-border p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-bold text-natural-primary text-sm">Évolution du Rythme</h3>
@@ -303,8 +339,8 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
                   <Tooltip content={(props) => <CustomTooltip {...props} labelFormatter={xLabelFormatter} />} />
                   
                   {/* Guideline thresholds */}
-                  <ReferenceLine y={100} stroke="#ec4899" strokeDasharray="3 3" strokeWidth={1} label={{ value: "FC haute (100)", fill: "#ec4899", fontSize: 9, position: "insideBottomLeft" }} />
-                  <ReferenceLine y={60} stroke="#14b8a6" strokeDasharray="3 3" strokeWidth={1} label={{ value: "FC basse (60)", fill: "#14b8a6", fontSize: 9, position: "insideBottomLeft" }} />
+                  <ReferenceLine y={settings.pulseHigh} stroke="#ec4899" strokeDasharray="3 3" strokeWidth={1} label={{ value: `FC haute (${settings.pulseHigh})`, fill: "#ec4899", fontSize: 9, position: "insideBottomLeft" }} />
+                  <ReferenceLine y={settings.pulseLow} stroke="#14b8a6" strokeDasharray="3 3" strokeWidth={1} label={{ value: `FC basse (${settings.pulseLow})`, fill: "#14b8a6", fontSize: 9, position: "insideBottomLeft" }} />
 
                   <Line
                     type="monotone"
@@ -324,3 +360,7 @@ export default function StatsDashboard({ filteredRecords, allRecords, activePeri
     </div>
   );
 }
+
+
+
+

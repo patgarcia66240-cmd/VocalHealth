@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { MeasurementRecord, ClassificationResult } from "./types";
+import { MeasurementRecord, ClassificationResult, MedicalSettings, DEFAULT_MEDICAL_SETTINGS } from "./types";
 
 /**
  * Classifies blood pressure according to WHO / European Society of Cardiology guidelines
@@ -71,36 +71,58 @@ export interface MedicalAlertInfo {
  * - Tachycardia: Pulse >= 100
  * - Bradycardia: Pulse <= 50
  */
-export function checkMedicalThresholds(systolic: number, diastolic: number, pulse: number): MedicalAlertInfo {
+export function checkMedicalThresholds(
+  systolic: number,
+  diastolic: number,
+  pulse: number,
+  spo2?: number,
+  settings: MedicalSettings = DEFAULT_MEDICAL_SETTINGS,
+): MedicalAlertInfo {
   const messages: string[] = [];
   let alertType: "warning" | "danger" | "none" = "none";
 
+  const systolicHigh = settings.systolicHigh;
+  const diastolicHigh = settings.diastolicHigh;
+  const systolicLow = settings.systolicLow;
+  const diastolicLow = settings.diastolicLow;
+  const pulseHigh = settings.pulseHigh;
+  const pulseLow = settings.pulseLow;
+
   // Blood pressure checks
-  if (systolic >= 180 || diastolic >= 110) {
+  if (systolic >= systolicHigh + 40 || diastolic >= diastolicHigh + 20) {
     alertType = "danger";
     messages.push(`Tension critique : ${systolic}/${diastolic} mmHg (Crise Hypertensive).`);
-  } else if (systolic >= 140 || diastolic >= 90) {
+  } else if (systolic >= systolicHigh || diastolic >= diastolicHigh) {
     alertType = "warning";
-    messages.push(`Tension élevée : ${systolic}/${diastolic} mmHg (Hypertension).`);
-  } else if (systolic <= 90 || diastolic <= 60) {
+    messages.push(`Tension ?lev?e : ${systolic}/${diastolic} mmHg (Hypertension).`);
+  } else if (systolic <= systolicLow || diastolic <= diastolicLow) {
     alertType = "warning";
     messages.push(`Tension basse : ${systolic}/${diastolic} mmHg (Hypotension).`);
   }
 
   // Pulse/heart rate checks at rest
-  if (pulse >= 120) {
+  if (pulse >= pulseHigh + 20) {
     alertType = "danger";
-    messages.push(`Rythme cardiaque très élevé : ${pulse} bpm (Tachycardie sévère).`);
-  } else if (pulse >= 100) {
+    messages.push(`Rythme cardiaque tr?s ?lev? : ${pulse} bpm (Tachycardie s?v?re).`);
+  } else if (pulse >= pulseHigh) {
     if (alertType !== "danger") {
       alertType = "warning";
     }
-    messages.push(`Rythme cardiaque élevé : ${pulse} bpm (Tachycardie au repos).`);
-  } else if (pulse <= 50) {
+    messages.push(`Rythme cardiaque ?lev? : ${pulse} bpm (Tachycardie au repos).`);
+  } else if (pulse <= pulseLow) {
     if (alertType !== "danger") {
       alertType = "warning";
     }
     messages.push(`Rythme cardiaque bas : ${pulse} bpm (Bradycardie).`);
+  }
+
+  if (settings.spo2Enabled && typeof spo2 === "number" && spo2 <= settings.spo2Low) {
+    if (spo2 <= settings.spo2Low - 4) {
+      alertType = "danger";
+    } else if (alertType !== "danger") {
+      alertType = "warning";
+    }
+    messages.push(`Saturation oxyg?ne basse : ${spo2}% (seuil ${settings.spo2Low}%).`);
   }
 
   return {
@@ -311,4 +333,5 @@ export function calculateAge(birthDateString: string): number | null {
   }
   return age;
 }
+
 

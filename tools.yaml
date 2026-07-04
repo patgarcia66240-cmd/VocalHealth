@@ -1,0 +1,17 @@
+# tools.yaml – configuration minimale pour le MCP Toolbox for Databases (SQLite)
+
+toolbox:
+  name: "MCP Toolbox for Databases"
+  version: "1.6.0"
+  description: "Outils d’interaction avec les bases de données via MCP"
+
+sqlite:
+  file: "my_database.sqlite"   # Chemin relatif ou absolu vers le fichier SQLite
+  timeout: 30                    # Timeout en secondes pour les opérations
+  pragmas:
+    journal_mode: "WAL"
+    synchronous: "NORMAL"
+
+logging:
+  level: "info"
+  file: "toolbox.log"

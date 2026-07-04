@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from "react";
 import { Info } from "lucide-react";
 
 export default function VoiceTips() {
@@ -37,3 +36,4 @@ export default function VoiceTips() {
     </div>
   );
 }
+
