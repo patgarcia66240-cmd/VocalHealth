@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { MeasurementRecord, ClassificationResult, MedicalSettings, DEFAULT_MEDICAL_SETTINGS } from "./types";
 
 /**

@@ -1,4 +1,41 @@
 @import "tailwindcss";
+@import "react-loading-skeleton/dist/skeleton.css";
+
+/* Enhanced skeleton loading styles */
+:root {
+  --skeleton-bg: #e8e8e8;
+  --skeleton-highlight: #f0f0f0;
+}
+
+.dark {
+  --skeleton-bg: #2a2a2a;
+  --skeleton-highlight: #3a3a3a;
+}
+
+.react-loading-skeleton {
+  background-color: var(--skeleton-bg);
+  border-radius: 0.5rem;
+}
+
+.react-loading-skeleton::after {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-bg),
+    var(--skeleton-highlight),
+    var(--skeleton-bg)
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 2s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
 
 :root {
   --natural-bg: #F8FAFC;        /* Modern medical blue-white background */

@@ -1,14 +1,4 @@
-﻿/**
-
- * @license
-
- * SPDX-License-Identifier: Apache-2.0
-
- */
-
-
-
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 
 import {
 
@@ -22,19 +12,29 @@ import {
 
   AlertCircle,
 
-  ArrowRight,
-
   Volume2,
 
   VolumeX,
 
-  RotateCcw
+  Droplets,
+
+  HeartPulse,
+
+  MessageSquare
 
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "motion/react";
 
 import { ParsedVoiceResult } from "../types";
+
+import GuidedMode from "./GuidedMode";
+
+import type { GuidedStep, GuidedStepCardData } from "./GuidedMode";
+
+import InputModeSwitch from "./InputModeSwitch";
+
+import type { InputMode } from "./InputModeSwitch";
 
 
 
@@ -352,13 +352,13 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
 
   // Modes: "guided" (step-by-step assistant) or "free" (dictate everything at once)
 
-  const [inputMode, setInputMode] = useState<"guided" | "free">("guided");
+  const [inputMode, setInputMode] = useState<InputMode>("guided");
 
   
 
   // Guided Mode steps state - now strictly storing cleaned numeric digits only
 
-  const [guidedStep, setGuidedStep] = useState<1 | 2 | 3>(1);
+  const [guidedStep, setGuidedStep] = useState<GuidedStep>(1);
 
   const [guidedTension, setGuidedTension] = useState("");
 
@@ -472,9 +472,9 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
 
             called = true;
 
-            // Introduce a 600ms cushion pause after TTS stops before opening the mic
+            // Introduce a 1200ms cushion pause after TTS stops before opening the mic
 
-            setTimeout(onEnd, 600);
+            setTimeout(onEnd, 1200);
 
           }
 
@@ -484,9 +484,9 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
 
         utterance.onerror = handleEnd;
 
-        // Safety timeout of 8 seconds to prevent getting stuck if onend never fires
+        // Safety timeout of 15 seconds to prevent getting stuck if onend never fires
 
-        setTimeout(handleEnd, 8000);
+        setTimeout(handleEnd, 15000);
 
       }
 
@@ -514,7 +514,7 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
 
               called = true;
 
-              setTimeout(onEnd, 600);
+              setTimeout(onEnd, 1200);
 
             }
 
@@ -524,7 +524,7 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
 
           fallbackUtterance.onerror = handleEnd;
 
-          setTimeout(handleEnd, 8000);
+          setTimeout(handleEnd, 15000);
 
         }
 
@@ -1220,7 +1220,7 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
 
 
 
-  const handleStepJump = (step: 1 | 2 | 3) => {
+  const handleStepJump = (step: GuidedStep) => {
 
     // Stop mic
 
@@ -1282,6 +1282,58 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
 
   const liveParsedPulse = guidedStep === 2 && transcript.trim() ? cleanInputToDigits(transcript, 2) : "";
 
+  const guidedStepCards: GuidedStepCardData[] = [
+
+    {
+
+      step: 1 as const,
+
+      label: "Tension",
+
+      value: guidedTension,
+
+      placeholder: "—",
+
+      icon: Droplets,
+
+      disabled: false
+
+    },
+
+    {
+
+      step: 2 as const,
+
+      label: "Pouls",
+
+      value: guidedPulse,
+
+      placeholder: "—",
+
+      icon: HeartPulse,
+
+      disabled: !guidedTension && guidedStep < 2
+
+    },
+
+    {
+
+      step: 3 as const,
+
+      label: "Commentaire",
+
+      value: guidedRemarks,
+
+      placeholder: "—",
+
+      icon: MessageSquare,
+
+      disabled: (!guidedTension || !guidedPulse) && guidedStep < 3
+
+    }
+
+  ];
+
 
 
   return (
@@ -1301,7 +1353,7 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
 
           <label className="relative flex-none lg:shrink-0">
 
-            <span className="sr-only">S?lectionner le moteur d'analyse IA</span>
+            <span className="sr-only">Sélectionner le moteur d'analyse IA</span>
 
             <select
 
@@ -1315,7 +1367,7 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
 
                 const provName = prov === 'gemini' ? 'Gemini' : prov === 'openai' ? 'OpenAI' : prov === 'mistral' ? 'Mistral' : 'Qwen';
 
-                speakInstructions(`Moteur ${provName} activ?.`);
+                speakInstructions(`Moteur ${provName} activé.`);
 
               }}
 
@@ -1395,101 +1447,20 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
 
 
 
-          {/* Mode toggle tabs */}
+          <InputModeSwitch
+            value={inputMode}
+            onChange={(mode) => {
+              setInputMode(mode);
+              setTranscript("");
 
-          <div className="inline-flex h-11 items-stretch rounded-2xl border border-natural-border/60 bg-linear-to-br from-natural-card to-natural-bg p-0 shadow-inner flex-none">
-
-            <button
-
-              onClick={() => {
-
-                setInputMode("guided");
-
+              if (mode === "guided") {
                 setGuidedStep(1);
-
-                setTranscript("");
-
                 speakInstructions("Mode pas a pas activé. Veuillez dicter votre tension.");
-
-              }}
-
-              className={`min-w-[6.35rem] rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex flex-col justify-center ${
-
-                inputMode === "guided"
-
-                  ? "bg-natural-primary text-white shadow-lg shadow-natural-primary/20"
-
-                  : "text-natural-secondary hover:text-natural-primary"
-
-              }`}
-
-            >
-
-              <span className="flex flex-col items-center gap-1 leading-none">
-
-                <span className="flex items-center gap-2 text-sm normal-case tracking-normal">
-
-                  <Sparkles className="h-3.5 w-3.5" />
-
-                  Pas à pas
-
-                </span>
-
-                <span className={`text-xs font-medium ${inputMode === "guided" ? "text-white/80" : "text-natural-secondary"}`}>
-
-                  Guidage séquentiel
-
-                </span>
-
-              </span>
-
-            </button>
-
-            <button
-
-              onClick={() => {
-
-                setInputMode("free");
-
-                setTranscript("");
-
+              } else {
                 speakInstructions("Mode libre activé. Dites votre tension, pouls et remarques d'une seule traite.");
-
-              }}
-
-              className={`min-w-[6.35rem] rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex flex-col justify-center ${
-
-                inputMode === "free"
-
-                  ? "bg-natural-primary text-white shadow-lg shadow-natural-primary/20"
-
-                  : "text-natural-secondary hover:text-natural-primary"
-
-              }`}
-
-            >
-
-              <span className="flex flex-col items-center gap-1 leading-none">
-
-                <span className="flex items-center gap-2 text-sm normal-case tracking-normal">
-
-                  <Mic className="h-3.5 w-3.5" />
-
-                  Mode libre
-
-                </span>
-
-                <span className={`text-xs font-medium ${inputMode === "free" ? "text-white/80" : "text-natural-secondary"}`}>
-
-                  Une seule dictée
-
-                </span>
-
-              </span>
-
-            </button>
-
-          </div>
+              }
+            }}
+          />
 
         </div>
 
@@ -1525,382 +1496,39 @@ export default function VoiceInput({ onParsedResult, onStatusChange }: VoiceInpu
 
       {inputMode === "guided" ? (
 
-        <div className="space-y-3">
+        <GuidedMode
 
-          {/* Progress sequence visualizer */}
+          step={guidedStep}
 
-          <div className="grid grid-cols-3 gap-2 text-sm font-bold text-center">
+          cards={guidedStepCards}
 
-            {/* Step 1 badge */}
+          liveParsedTension={liveParsedTension}
 
-            <button
+          liveParsedPulse={liveParsedPulse}
 
-              onClick={() => handleStepJump(1)}
+          transcript={transcript}
 
-              className={`p-4 rounded-2xl border transition-all text-left flex flex-col gap-1 cursor-pointer ${
+          supportSpeech={supportSpeech}
 
-                guidedStep === 1
+          isListening={isListening}
 
-                  ? "border-natural-primary bg-natural-card text-natural-primary shadow-sm"
+          isAnalyzing={isAnalyzing}
 
-                  : guidedTension
+          onStepJump={handleStepJump}
 
-                  ? "border-emerald-200 bg-emerald-50/40 text-emerald-800"
+          onTranscriptChange={setTranscript}
 
-                  : "border-natural-border/50 text-natural-secondary/60 bg-transparent"
+          onValidate={handleValidateValue}
 
-              }`}
+          onSkip={handleSkipOrNone}
 
-            >
+          onReset={resetGuidedMode}
 
-              <div className="flex items-center gap-2">
+          onStartListening={startListening}
 
-                <span className={`h-7 w-7 rounded-full flex items-center justify-center text-sm font-bold ${
+          onStopListening={() => stopListening(true)}
 
-                  guidedTension ? "bg-emerald-500 text-white" : "bg-natural-primary text-white"
-
-                }`}>
-
-                  1
-
-                </span>
-
-                <span className="text-sm font-semibold">Tension</span>
-
-              </div>
-
-              <span className="text-sm font-mono text-emerald-700 font-bold mt-0.5 block">
-
-                {guidedTension ? `${guidedTension}` : "—"}
-
-              </span>
-
-            </button>
-
-
-
-            {/* Step 2 badge */}
-
-            <button
-
-              onClick={() => handleStepJump(2)}
-
-              disabled={!guidedTension && guidedStep < 2}
-
-              className={`p-4 rounded-2xl border transition-all text-left flex flex-col gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-
-                guidedStep === 2
-
-                  ? "border-natural-primary bg-natural-card text-natural-primary shadow-sm"
-
-                  : guidedPulse
-
-                  ? "border-emerald-200 bg-emerald-50/40 text-emerald-800"
-
-                  : "border-natural-border/50 text-natural-secondary/60 bg-transparent"
-
-              }`}
-
-            >
-
-              <div className="flex items-center gap-2">
-
-                <span className={`h-7 w-7 rounded-full flex items-center justify-center text-sm font-bold ${
-
-                  guidedPulse ? "bg-emerald-500 text-white" : "bg-natural-primary text-white"
-
-                }`}>
-
-                  2
-
-                </span>
-
-                <span className="text-sm font-semibold">Pouls</span>
-
-              </div>
-
-              <span className="text-sm font-mono text-emerald-700 font-bold mt-0.5 block">
-
-                {guidedPulse ? `${guidedPulse}` : "—"}
-
-              </span>
-
-            </button>
-
-
-
-            {/* Step 3 badge */}
-
-            <button
-
-              onClick={() => handleStepJump(3)}
-
-              disabled={(!guidedTension || !guidedPulse) && guidedStep < 3}
-
-              className={`p-4 rounded-2xl border transition-all text-left flex flex-col gap-1 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-
-                guidedStep === 3
-
-                  ? "border-natural-primary bg-natural-card text-natural-primary shadow-sm"
-
-                  : guidedRemarks
-
-                  ? "border-emerald-200 bg-emerald-50/40 text-emerald-800"
-
-                  : "border-natural-border/50 text-natural-secondary/60 bg-transparent"
-
-              }`}
-
-            >
-
-              <div className="flex items-center gap-2">
-
-                <span className={`h-7 w-7 rounded-full flex items-center justify-center text-sm font-bold ${
-
-                  guidedRemarks ? "bg-emerald-500 text-white" : "bg-natural-primary text-white"
-
-                }`}>
-
-                  3
-
-                </span>
-
-                <span className="text-sm font-semibold">Commentaire</span>
-
-              </div>
-
-              <span className="text-sm font-mono text-emerald-700 font-normal mt-0.5 block truncate max-w-25">
-
-                {guidedRemarks ? guidedRemarks : "—"}
-
-              </span>
-
-            </button>
-
-          </div>
-
-
-
-          {/* Active Guidance instruction panel */}
-
-          <div className="bg-natural-card/40 border border-natural-border/60 rounded-3xl p-3 text-center space-y-2">
-
-          
-
-            <div className="space-y-1 max-w-md mx-auto">
-
-              <h3 className="text-sm font-bold text-natural-dark flex items-center justify-center gap-1.5">
-
-                {guidedStep === 1 && <>{liveParsedTension ? <span className="text-emerald-600 underline font-mono text-base">{liveParsedTension}</span> : "Tension : Parlez ou saisissez"}</>}
-
-                {guidedStep === 2 && <>{liveParsedPulse ? <span className="text-emerald-600 underline font-mono text-base">{liveParsedPulse} bpm</span> : "Pouls : Parlez ou saisissez"}</>}
-
-                {guidedStep === 3 && <>{transcript ? <span className="text-emerald-600 italic font-sans text-xs">"{transcript}"</span> : "Commentaire : Parlez ou saisissez"}</>}
-              </h3>
-
-              <p className="text-sm text-natural-secondary leading-relaxed">
-
-                {guidedStep === 1 && "Dites deux chiffres ou nombres. Ex: '12 8', '120 sur 80', ou tapez-les."}
-
-                {guidedStep === 2 && "Dites votre rythme cardiaque. Ex: '72 battements', 'soixante-quinze', ou tapez-le."}
-
-                {guidedStep === 3 && "Dites votre forme générale, ex : 'bien', 'fatigué', ou 'aucun' pour passer."}
-
-              </p>
-
-            </div>
-
-
-
-            {/* Mic trigger and visual status */}
-
-            {supportSpeech && (
-
-              <div className="flex flex-col items-center justify-center gap-2 pt-2">
-
-                <div className="relative">
-
-                  <AnimatePresence>
-
-                    {isListening && (
-
-                      <motion.div
-
-                        className="absolute inset-0 bg-natural-primary/25 rounded-full"
-
-                        initial={{ scale: 0.8, opacity: 0.5 }}
-
-                        animate={{ scale: 1.6, opacity: 0 }}
-
-                        exit={{ opacity: 0 }}
-
-                        transition={{ repeat: Infinity, duration: 1.2, ease: "easeOut" }}
-
-                      />
-
-                    )}
-
-                  </AnimatePresence>
-
-                  
-
-                  <button
-
-                    onClick={isListening ? () => stopListening(true) : startListening}
-
-                    disabled={isAnalyzing}
-
-                    className={`relative z-10 h-16 w-16 rounded-full flex items-center justify-center text-white transition-all shadow-md hover:scale-105 active:scale-95 focus:outline-none cursor-pointer ${
-
-                      isListening ? "bg-rose-500 shadow-rose-200" : "bg-natural-primary shadow-emerald-200 hover:bg-[#047857]"
-
-                    } disabled:opacity-50`}
-
-                  >
-
-                    {isListening ? (
-
-                      <MicOff className="h-6 w-6 animate-pulse" />
-
-                    ) : isAnalyzing ? (
-
-                      <Loader2 className="h-6 w-6 animate-spin" />
-
-                    ) : (
-
-                      <Mic className="h-6 w-6" />
-
-                    )}
-
-                  </button>
-
-                </div>
-
-                
-
-                <span className="text-xs font-bold text-natural-primary uppercase tracking-wider animate-pulse">
-
-                  {isListening ? "Le micro vous écoute... Parlez naturellement" : "Cliquez sur le micro pour parler"}
-
-                </span>
-
-              </div>
-
-            )}
-
-
-
-            {/* Captured text preview & manual input field for instant correction */}
-
-            <div className="pt-1">
-
-              <div className="flex gap-2">
-
-                <input
-
-                  type="text"
-
-                  value={transcript}
-
-                  onChange={(e) => setTranscript(e.target.value)}
-
-                  onKeyDown={(e) => {
-
-                    if (e.key === "Enter") {
-
-                      handleValidateValue(transcript);
-
-                    }
-
-                  }}
-
-                  placeholder={
-
-                    guidedStep === 1
-
-                      ? "Ex: 12 8 ou 120 80"
-
-                      : guidedStep === 2
-
-                      ? "Ex: 72 ou 85"
-
-                      : "Saisissez ou dites un commentaire (ou 'aucun')"
-
-                  }
-
-                  className="flex-1 text-xs p-2 border border-natural-border rounded-xl focus:ring-1 focus:ring-natural-primary focus:border-natural-primary bg-natural-surface shadow-inner font-mono text-center font-bold tracking-widest text-natural-primary"
-
-                  disabled={isAnalyzing}
-
-                />
-
-
-
-                {/* Submit step */}
-
-                <button
-
-                  onClick={() => handleValidateValue(transcript)}
-
-                  disabled={isAnalyzing || !transcript.trim()}
-
-                  className="px-4 bg-natural-primary hover:bg-[#047857] text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 cursor-pointer flex items-center gap-1 shadow-sm"
-
-                  title="Étape suivante"
-
-                >
-
-                  <span>Valider</span>
-
-                  <ArrowRight className="h-3 w-3" />
-
-                </button>
-
-              </div>
-
-
-
-              {/* Skip and Reset helper controls */}
-
-              <div className="flex justify-between items-center mt-2 pt-1 px-1">
-
-                <button
-
-                  onClick={resetGuidedMode}
-
-                  className="text-xs text-rose-600 hover:text-rose-700 font-bold flex items-center gap-1 cursor-pointer"
-
-                  title="Recommencer l'assistant du début"
-
-                >
-
-                  <RotateCcw className="h-3 w-3" />
-
-                  <span>Recommencer</span>
-
-                </button>
-
-
-
-                <button
-
-                  onClick={handleSkipOrNone}
-
-                  className="text-xs text-natural-primary hover:underline font-bold cursor-pointer"
-
-                >
-
-                  {guidedStep === 3 ? "Passer" : "Passer"}
-
-                </button>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
+        />
 
       ) : (
 

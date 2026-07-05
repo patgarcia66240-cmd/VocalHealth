@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 export interface MeasurementRecord {
   id: string;
   timestamp: string; // ISO string representing the date & time

@@ -1,0 +1,14 @@
+{
+  "enabledPlugins": {
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true,
+    "frontend-design@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "desktop-commander@claude-plugins-official": true,
+    "hookify@claude-plugins-official": true,
+    "vercel@claude-plugins-official": true,
+    "mintlify@claude-plugins-official": true
+  }
+}

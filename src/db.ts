@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { MeasurementRecord } from "./types";
 
 const DB_NAME = "VocalTensionDB";

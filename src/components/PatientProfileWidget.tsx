@@ -5,11 +5,44 @@ import { calculateAge } from "../utils";
 import { motion, AnimatePresence } from "motion/react";
 
 interface PatientProfileWidgetProps {
+  currentProfile?: PatientProfile | null;
   onProfileChange?: (profile: PatientProfile | null) => void;
 }
 
-export default function PatientProfileWidget({ onProfileChange }: PatientProfileWidgetProps) {
+function getPatientProfileKey(profile: PatientProfile) {
+  return `${profile.prenom.trim().toLowerCase()}|${profile.nom.trim().toLowerCase()}|${profile.dateNaissance}`;
+}
+
+function upsertPatientProfile(profile: PatientProfile) {
+  const saved = localStorage.getItem("patient_profiles");
+  const profiles: PatientProfile[] = saved ? JSON.parse(saved) : [];
+  const profileKey = getPatientProfileKey(profile);
+  const nextProfiles = [
+    profile,
+    ...profiles.filter((item) => getPatientProfileKey(item) !== profileKey)
+  ];
+
+  localStorage.setItem("patient_profiles", JSON.stringify(nextProfiles));
+}
+
+function removePatientProfile(profile: PatientProfile) {
+  const saved = localStorage.getItem("patient_profiles");
+  if (!saved) return;
+
+  const profileKey = getPatientProfileKey(profile);
+  const profiles: PatientProfile[] = JSON.parse(saved);
+  localStorage.setItem(
+    "patient_profiles",
+    JSON.stringify(profiles.filter((item) => getPatientProfileKey(item) !== profileKey))
+  );
+}
+
+export default function PatientProfileWidget({ currentProfile, onProfileChange }: PatientProfileWidgetProps) {
   const [profile, setProfile] = useState<PatientProfile | null>(() => {
+    if (currentProfile !== undefined) {
+      return currentProfile;
+    }
+
     const saved = localStorage.getItem("patient_profile");
     if (saved) {
       try {
@@ -31,6 +64,13 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
   const [ville, setVille] = useState("");
   const [tel, setTel] = useState("");
   const [dateNaissance, setDateNaissance] = useState("");
+
+  useEffect(() => {
+    if (currentProfile !== undefined) {
+      setProfile(currentProfile);
+      setIsEditing(false);
+    }
+  }, [currentProfile]);
 
   // Sync state when entering edit mode
   useEffect(() => {
@@ -66,6 +106,7 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
     };
 
     localStorage.setItem("patient_profile", JSON.stringify(updatedProfile));
+    upsertPatientProfile(updatedProfile);
     setProfile(updatedProfile);
     setIsEditing(false);
     if (onProfileChange) {
@@ -75,6 +116,9 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
 
   const handleClear = () => {
     if (confirm("Voulez-vous supprimer les informations de votre profil patient ?")) {
+      if (profile) {
+        removePatientProfile(profile);
+      }
       localStorage.removeItem("patient_profile");
       setProfile(null);
       setIsEditing(false);
@@ -87,10 +131,10 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
   const age = profile ? calculateAge(profile.dateNaissance) : null;
 
   return (
-    <div className="bg-gradient-to-br from-natural-surface to-natural-card/30 rounded-[28px] border border-natural-border/50 p-4 shadow-lg shadow-natural-primary/5 space-y-3 backdrop-blur-sm" id="patient-profile-card">
+    <div className="bg-linear-to-br from-natural-surface to-natural-card/30 rounded-[28px] border border-natural-border/50 p-4 shadow-lg shadow-natural-primary/5 space-y-3 backdrop-blur-sm" id="patient-profile-card">
       <div className="flex items-center justify-between border-b border-natural-border/40 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="p-2.5 bg-gradient-to-br from-natural-primary/10 to-natural-accent/10 rounded-xl text-natural-primary shadow-sm">
+          <div className="p-2.5 bg-linear-to-br from-natural-primary/10 to-natural-accent/10 rounded-xl text-natural-primary shadow-sm">
             <User className="h-5 w-5" />
           </div>
           <div>
@@ -226,7 +270,7 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
 
             <button
               type="submit"
-              className="w-full mt-3 py-2.5 bg-gradient-to-r from-natural-primary to-natural-accent text-white rounded-xl text-xs font-bold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+              className="w-full mt-3 py-2.5 bg-linear-to-r from-natural-primary to-natural-accent text-white rounded-xl text-xs font-bold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
               id="save-profile-btn"
             >
               <Check className="h-3.5 w-3.5" />
@@ -242,8 +286,8 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
             id="profile-info-display"
           >
             {/* Identity details */}
-            <div className="flex items-center gap-3 bg-gradient-to-r from-natural-primary/5 to-natural-accent/5 p-4 rounded-2xl border border-natural-border/30 shadow-sm">
-              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-natural-primary to-natural-accent text-white flex items-center justify-center font-bold text-base shadow-md">
+            <div className="flex items-center gap-3 bg-linear-to-r from-natural-primary/5 to-natural-accent/5 p-4 rounded-2xl border border-natural-border/30 shadow-sm">
+              <div className="h-12 w-12 rounded-full bg-linear-to-br from-natural-primary to-natural-accent text-white flex items-center justify-center font-bold text-base shadow-md">
                 {prenom.charAt(0).toUpperCase()}{nom.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
@@ -251,7 +295,7 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-[11px] text-natural-secondary font-semibold font-sans">Patient</span>
                   {age !== null && (
-                    <span className="text-[11px] bg-gradient-to-r from-natural-primary/10 to-natural-accent/10 text-natural-primary font-bold px-2.5 py-0.5 rounded-full border border-natural-primary/20">
+                    <span className="text-[11px] bg-linear-to-r from-natural-primary/10 to-natural-accent/10 text-natural-primary font-bold px-2.5 py-0.5 rounded-full border border-natural-primary/20">
                       {age} ans
                     </span>
                   )}
@@ -264,21 +308,21 @@ export default function PatientProfileWidget({ onProfileChange }: PatientProfile
             key="empty-profile"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-4 px-3 bg-gradient-to-br from-natural-card/30 to-natural-bg/40 rounded-2xl border border-dashed border-natural-border/60 flex flex-col items-center justify-center gap-2"
+            className="text-center py-4 px-3 bg-linear-to-br from-natural-card/30 to-natural-bg/40 rounded-2xl border border-dashed border-natural-border/60 flex flex-col items-center justify-center gap-2"
             id="profile-empty-state"
           >
-            <div className="p-2.5 bg-gradient-to-br from-natural-primary/10 to-natural-accent/10 rounded-full text-natural-primary">
+            <div className="p-2.5 bg-linear-to-br from-natural-primary/10 to-natural-accent/10 rounded-full text-natural-primary">
               <User className="h-5 w-5" />
             </div>
             <div>
               <p className="text-xs font-bold text-natural-dark">Aucun profil patient</p>
-              <p className="text-[10px] text-natural-secondary mt-1 max-w-[180px] mx-auto leading-relaxed">
+              <p className="text-[10px] text-natural-secondary mt-1 max-w-45 mx-auto leading-relaxed">
                 Créez votre profil pour un suivi personnalisé
               </p>
             </div>
             <button
               onClick={() => setIsEditing(true)}
-              className="mt-1 px-4 py-2 bg-gradient-to-r from-natural-primary/10 to-natural-accent/10 hover:from-natural-primary hover:to-natural-accent text-natural-primary hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm hover:shadow-md"
+              className="mt-1 px-4 py-2 bg-linear-to-r from-natural-primary/10 to-natural-accent/10 hover:from-natural-primary hover:to-natural-accent text-natural-primary hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm hover:shadow-md"
             >
               Créer mon profil
             </button>

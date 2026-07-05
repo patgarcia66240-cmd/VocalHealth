@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useEffect } from "react";
 import { Plus, Heart, HeartPulse, Droplets, Sparkles, X, MessageSquare, Calendar, Clock, AlertTriangle, ShieldAlert } from "lucide-react";
 import { ParsedVoiceResult, MeasurementRecord, MedicalSettings } from "../types";

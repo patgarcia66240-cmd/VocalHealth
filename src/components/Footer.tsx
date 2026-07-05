@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 export default function Footer() {
   return (
     <footer className="bg-linear-to-r from-natural-surface to-natural-card/20 border-t border-natural-border/50 mt-auto py-2 text-center text-[10px] text-natural-secondary" id="app-footer-layout">

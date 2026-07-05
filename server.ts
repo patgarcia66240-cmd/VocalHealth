@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: '.env.local' });
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "15mb" }));
 
 const PORT = 3000;
 
@@ -176,6 +176,97 @@ Règles de normalisation de la tension:
   return JSON.parse(content);
 }
 
+const imageAnalysisPrompt = `Lis cette image comme un assistant IA de lecture visuelle médicale. Extrais les mesures visibles de tension artérielle, pouls et SpO2.
+
+Retourne uniquement un JSON valide avec ces clés :
+- "extractedText": transcription courte du texte utile visible sur l'image
+- "records": tableau de mesures détectées
+
+Chaque entrée de "records" doit contenir :
+- "timestamp": date ISO si une date/heure est visible, sinon null
+- "systolic": entier mmHg ou null
+- "diastolic": entier mmHg ou null
+- "pulse": entier bpm ou null
+- "spo2": entier pourcentage ou null
+- "notes": court commentaire utile, sinon chaîne vide
+
+Règles :
+1. N'utilise pas de devinette médicale. Si une valeur n'est pas lisible, mets null.
+2. Reconnais les formats 120/80, 12/8, 12 8, SYS/DIA, tension, pouls, BPM, SpO2.
+3. Normalise 12/8 en 120/80, 13/8 en 130/80, mais garde 124/82 tel quel.
+4. Ignore les nombres qui ne sont manifestement pas des constantes de santé.
+5. Si plusieurs lignes de mesures existent, retourne plusieurs records.`;
+
+async function parseImageWithOpenAI(imageData: string, apiKey: string) {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: imageAnalysisPrompt },
+            { type: "image_url", image_url: { url: imageData } }
+          ]
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Erreur API OpenAI vision: ${response.statusText} (${response.status}) - ${errorText}`);
+  }
+
+  const json = await response.json();
+  const content = json.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new Error("Pas de réponse image reçue d'OpenAI.");
+  }
+  return JSON.parse(content);
+}
+
+async function parseImageWithMistral(imageData: string, apiKey: string) {
+  const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: "pixtral-large-latest",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: imageAnalysisPrompt },
+            { type: "image_url", image_url: imageData }
+          ]
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Erreur API Mistral vision: ${response.statusText} (${response.status}) - ${errorText}`);
+  }
+
+  const json = await response.json();
+  const content = json.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new Error("Pas de réponse image reçue de Mistral.");
+  }
+  return JSON.parse(content);
+}
+
 // Endpoint to parse vocal transcription using dynamic AI engine
 app.post("/api/parse-measurements", async (req, res) => {
   try {
@@ -287,6 +378,152 @@ Règles de normalisation de la tension:
     res.status(500).json({
       success: false,
       error: error.message || "Une erreur interne est survenue lors de l'analyse vocale."
+    });
+  }
+});
+
+function parseDataUrlImage(imageData: string) {
+  const match = imageData.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!match) {
+    throw new Error("Image invalide. Format base64 attendu.");
+  }
+
+  return {
+    mimeType: match[1],
+    data: match[2]
+  };
+}
+
+// Endpoint to parse blood pressure records directly from an image using AI vision
+app.post("/api/parse-measurements-image", async (req, res) => {
+  try {
+    const { imageData, provider = "gemini", analysisTimestamp } = req.body;
+    if (!imageData || typeof imageData !== "string") {
+      res.status(400).json({ error: "L'image à analyser est manquante ou invalide." });
+      return;
+    }
+
+    const fallbackTimestamp =
+      typeof analysisTimestamp === "string" && !Number.isNaN(Date.parse(analysisTimestamp))
+        ? new Date(analysisTimestamp).toISOString()
+        : new Date().toISOString();
+
+    let structuredData: any = null;
+
+    if (provider === "openai") {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey || apiKey.trim() === "") {
+        res.status(400).json({
+          success: false,
+          error: "La clé API OPENAI_API_KEY n'est pas configurée dans le fichier .env.local de l'application."
+        });
+        return;
+      }
+      structuredData = await parseImageWithOpenAI(imageData, apiKey);
+    } else if (provider === "mistral") {
+      const apiKey = process.env.MISTRAL_API_KEY;
+      if (!apiKey || apiKey.trim() === "") {
+        res.status(400).json({
+          success: false,
+          error: "La clé API MISTRAL_API_KEY n'est pas configurée dans le fichier .env.local de l'application."
+        });
+        return;
+      }
+      structuredData = await parseImageWithMistral(imageData, apiKey);
+    } else {
+      const image = parseDataUrlImage(imageData);
+      const ai = getGeminiClient();
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: [
+          {
+            inlineData: {
+              mimeType: image.mimeType,
+              data: image.data
+            }
+          },
+          {
+            text: imageAnalysisPrompt
+          }
+        ],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              extractedText: {
+                type: Type.STRING,
+                description: "Transcription courte du texte utile visible sur l'image."
+              },
+              records: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    timestamp: {
+                      type: Type.STRING,
+                      description: "Date ISO si visible, sinon null."
+                    },
+                    systolic: {
+                      type: Type.INTEGER,
+                      description: "Pression systolique en mmHg, ou null."
+                    },
+                    diastolic: {
+                      type: Type.INTEGER,
+                      description: "Pression diastolique en mmHg, ou null."
+                    },
+                    pulse: {
+                      type: Type.INTEGER,
+                      description: "Pouls en bpm, ou null."
+                    },
+                    spo2: {
+                      type: Type.INTEGER,
+                      description: "Saturation SpO2 en pourcentage, ou null."
+                    },
+                    notes: {
+                      type: Type.STRING,
+                      description: "Commentaire utile, ou chaîne vide."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const parsedText = response.text;
+      if (!parsedText) {
+        throw new Error("Réponse vide reçue de l'IA vision.");
+      }
+      structuredData = JSON.parse(parsedText);
+    }
+
+    const records = Array.isArray(structuredData.records) ? structuredData.records : [];
+
+    res.json({
+      success: true,
+      extractedText: structuredData.extractedText || "",
+      records: records
+        .filter((record: any) => record && Number.isFinite(record.systolic) && Number.isFinite(record.diastolic))
+        .map((record: any) => ({
+          timestamp:
+            typeof record.timestamp === "string" && !Number.isNaN(Date.parse(record.timestamp))
+              ? new Date(record.timestamp).toISOString()
+              : fallbackTimestamp,
+          systolic: record.systolic ?? null,
+          diastolic: record.diastolic ?? null,
+          pulse: record.pulse ?? null,
+          spo2: record.spo2 ?? null,
+          notes: record.notes || "Importé par analyse IA"
+        }))
+    });
+  } catch (error: any) {
+    console.error("Erreur lors de l'analyse d'image par l'IA :", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "Une erreur interne est survenue lors de l'analyse de l'image."
     });
   }
 });
