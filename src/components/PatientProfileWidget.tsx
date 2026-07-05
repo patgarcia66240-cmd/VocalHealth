@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { User, Edit2, Check, X } from "lucide-react";
+﻿import React, { useState, useEffect, useMemo } from "react";
+import { User, Edit2, Check, X, ChevronDown } from "lucide-react";
 import { PatientProfile } from "../types";
 import { calculateAge } from "../utils";
 import { motion, AnimatePresence } from "motion/react";
@@ -55,6 +55,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
   });
 
   const [isEditing, setIsEditing] = useState(false);
+  const [showPatientSelect, setShowPatientSelect] = useState(false);
   
   // Local form state
   const [nom, setNom] = useState("");
@@ -64,6 +65,19 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
   const [ville, setVille] = useState("");
   const [tel, setTel] = useState("");
   const [dateNaissance, setDateNaissance] = useState("");
+
+  const patientProfiles = useMemo(() => {
+    const saved = localStorage.getItem("patient_profiles");
+    const savedProfiles: PatientProfile[] = saved ? JSON.parse(saved) : [];
+    const mergedProfiles = profile ? [profile, ...savedProfiles] : savedProfiles;
+    const uniqueProfiles = new Map<string, PatientProfile>();
+
+    mergedProfiles.forEach((item) => {
+      uniqueProfiles.set(getPatientProfileKey(item), item);
+    });
+
+    return Array.from(uniqueProfiles.values());
+  }, [profile]);
 
   useEffect(() => {
     if (currentProfile !== undefined) {
@@ -128,9 +142,24 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
     }
   };
 
+  const handleSelectPatient = (selectedProfile: PatientProfile) => {
+    const nextProfiles = [
+      selectedProfile,
+      ...patientProfiles.filter((item) => getPatientProfileKey(item) !== getPatientProfileKey(selectedProfile)),
+    ];
+
+    localStorage.setItem("patient_profile", JSON.stringify(selectedProfile));
+    localStorage.setItem("patient_profiles", JSON.stringify(nextProfiles));
+    setProfile(selectedProfile);
+    setIsEditing(false);
+    setShowPatientSelect(false);
+    onProfileChange?.(selectedProfile);
+  };
+
   const age = profile ? calculateAge(profile.dateNaissance) : null;
 
   return (
+    <>
     <div className="bg-linear-to-br from-natural-surface to-natural-card/30 rounded-[28px] border border-natural-border/50 p-4 shadow-lg shadow-natural-primary/5 space-y-3 backdrop-blur-sm" id="patient-profile-card">
       <div className="flex items-center justify-between border-b border-natural-border/40 pb-3">
         <div className="flex items-center gap-2.5">
@@ -139,7 +168,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
           </div>
           <div>
             <h3 className="font-bold text-natural-dark text-sm font-sans tracking-tight">Profil Patient</h3>
-            <p className="text-[10px] text-natural-secondary font-semibold font-sans uppercase tracking-widest opacity-80">Identité médicale</p>
+            <p className="text-[10px] text-natural-secondary font-semibold font-sans uppercase tracking-widest opacity-80">IdentitÃ© mÃ©dicale</p>
           </div>
         </div>
         
@@ -161,7 +190,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
                 id="edit-profile-btn"
               >
                 <Edit2 className="h-3.5 w-3.5" />
-                <span>{profile ? "Modifier" : "Créer"}</span>
+                <span>{profile ? "Modifier" : "CrÃ©er"}</span>
               </button>
             </>
           ) : (
@@ -189,7 +218,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
           >
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">Prénom</label>
+                <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">PrÃ©nom</label>
                 <input
                   type="text"
                   required
@@ -224,7 +253,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">Téléphone</label>
+              <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">TÃ©lÃ©phone</label>
               <input
                 type="tel"
                 placeholder="Ex: 06 12 34 56 78"
@@ -286,7 +315,12 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
             id="profile-info-display"
           >
             {/* Identity details */}
-            <div className="flex items-center gap-3 bg-linear-to-r from-natural-primary/5 to-natural-accent/5 p-4 rounded-2xl border border-natural-border/30 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setShowPatientSelect(true)}
+              className="group flex w-full items-center gap-3 bg-linear-to-r from-natural-primary/5 to-natural-accent/5 p-4 rounded-2xl border border-natural-border/30 shadow-sm text-left transition-all hover:border-natural-primary/40 hover:shadow-md"
+              title="Changer de patient"
+            >
               <div className="h-12 w-12 rounded-full bg-linear-to-br from-natural-primary to-natural-accent text-white flex items-center justify-center font-bold text-base shadow-md">
                 {prenom.charAt(0).toUpperCase()}{nom.charAt(0).toUpperCase()}
               </div>
@@ -301,7 +335,10 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
                   )}
                 </div>
               </div>
-            </div>
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-natural-border/70 bg-white/70 text-natural-secondary transition-all group-hover:text-natural-primary">
+                <ChevronDown className="h-4 w-4" />
+              </div>
+            </button>
           </motion.div>
         ) : (
           <motion.div
@@ -317,18 +354,97 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
             <div>
               <p className="text-xs font-bold text-natural-dark">Aucun profil patient</p>
               <p className="text-[10px] text-natural-secondary mt-1 max-w-45 mx-auto leading-relaxed">
-                Créez votre profil pour un suivi personnalisé
+                CrÃ©ez votre profil pour un suivi personnalisÃ©
               </p>
             </div>
             <button
               onClick={() => setIsEditing(true)}
               className="mt-1 px-4 py-2 bg-linear-to-r from-natural-primary/10 to-natural-accent/10 hover:from-natural-primary hover:to-natural-accent text-natural-primary hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm hover:shadow-md"
             >
-              Créer mon profil
+              CrÃ©er mon profil
             </button>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
+    <AnimatePresence>
+      {showPatientSelect && (
+        <motion.div
+          role="dialog"
+          aria-modal="false"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          className="relative z-40 mt-2 flex max-h-72 w-full flex-col overflow-hidden rounded-3xl border border-natural-border bg-natural-surface shadow-2xl"
+        >
+          <div className="flex items-center justify-between border-b border-natural-border/60 px-4 py-3">
+            <div>
+              <h3 className="text-sm font-extrabold text-natural-dark">Changer de patient</h3>
+            </div>
+            <button
+              onClick={() => setShowPatientSelect(false)}
+              className="rounded-full p-2 text-natural-secondary transition-all hover:bg-natural-bg hover:text-natural-dark"
+              title="Fermer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            {patientProfiles.length > 0 ? (
+              <div className="space-y-1.5">
+                {patientProfiles.map((item) => {
+                  const isActive = profile ? getPatientProfileKey(item) === getPatientProfileKey(profile) : false;
+
+                  return (
+                    <button
+                      type="button"
+                      key={getPatientProfileKey(item)}
+                      onClick={() => handleSelectPatient(item)}
+                      className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-all hover:border-natural-primary/40 hover:bg-natural-primary/5 ${
+                        isActive
+                          ? "border-natural-primary/40 bg-natural-primary/10"
+                          : "border-natural-border/50 bg-natural-bg/40"
+                      }`}
+                    >
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-black ${
+                        isActive
+                          ? "bg-natural-primary text-white"
+                          : "bg-natural-primary/10 text-natural-primary"
+                      }`}>
+                        {item.prenom.charAt(0).toUpperCase()}{item.nom.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-natural-dark">
+                          {item.prenom} {item.nom}
+                        </p>
+                        <p className="text-xs font-medium text-natural-secondary">
+                          {calculateAge(item.dateNaissance)} ans
+                        </p>
+                      </div>
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
+                        isActive
+                          ? "border-natural-primary bg-natural-primary text-white"
+                          : "border-natural-border bg-white"
+                      }`}>
+                        {isActive && <Check className="h-3.5 w-3.5" />}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-natural-border bg-natural-bg/40 p-4 text-sm text-natural-secondary">
+                Aucun autre patient enregistré pour le moment.
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </>
   );
 }
+
+
+

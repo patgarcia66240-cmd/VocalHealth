@@ -1,5 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
-import { Plus, UserCheck, Users, X } from "lucide-react";
+import { Check, ChevronDown, Plus, UserCheck, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { PatientProfile } from "../types";
 import { calculateAge } from "../utils";
@@ -97,7 +97,7 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-natural-surface border border-natural-border p-5 rounded-4xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer transition-all hover:border-natural-primary/30 hover:shadow-md"
+          className="group bg-natural-surface border border-natural-border p-5 rounded-4xl shadow-sm flex items-center justify-between gap-4 cursor-pointer transition-all hover:border-natural-primary/30 hover:shadow-md"
           id="patient-profile-dashboard-banner"
           role="button"
           tabIndex={0}
@@ -119,38 +119,16 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
                 <h2 className="text-base font-extrabold text-natural-dark font-sans leading-none">
                   {patientProfile.prenom} {patientProfile.nom}
                 </h2>
-                <span className="text-[10px] bg-natural-primary text-white font-bold px-2 py-0.5 rounded-full font-mono">
+                <span className="text-xs font-bold text-natural-secondary">Patient</span>
+                <span className="text-[10px] bg-natural-primary/10 text-natural-primary border border-natural-primary/20 font-bold px-2 py-0.5 rounded-full font-mono">
                   {calculateAge(patientProfile.dateNaissance)} ans
                 </span>
               </div>
-              <p className="text-xs text-natural-secondary font-medium mt-1">
-                Né(e) le {new Date(patientProfile.dateNaissance).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-              </p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-y-2 gap-x-6 text-xs text-natural-secondary border-t md:border-t-0 md:border-l border-natural-border/60 pt-3 md:pt-0 md:pl-6 flex-1 max-w-xl justify-end">
-            <div className="space-y-0.5">
-              <span className="text-[9px] font-bold text-natural-secondary uppercase tracking-wider block">📍 ADRESSE</span>
-              <p className="text-[13px] font-semibold text-natural-dark leading-tight">{patientProfile.adresse}</p>
-              <p className="text-xs font-medium text-natural-secondary">{patientProfile.cp} {patientProfile.ville}</p>
-            </div>
-            <div className="space-y-0.5 sm:border-l sm:border-natural-border/40 sm:pl-6 shrink-0">
-              <span className="text-[9px] font-bold text-natural-secondary uppercase tracking-wider block">📞 TÉLÉPHONE</span>
-              <p className="text-[13px] font-mono font-bold text-natural-primary">{patientProfile.tel}</p>
-            </div>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                setShowPatientsModal(true);
-              }}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-natural-primary/20 bg-natural-primary/10 px-3 py-2 text-xs font-bold text-natural-primary transition-all hover:bg-natural-primary hover:text-white"
-              title="Changer de patient"
-            >
-              <Users className="h-4 w-4" />
-              <span>Patients</span>
-            </button>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-natural-border/70 bg-white/70 text-natural-secondary transition-all group-hover:text-natural-primary">
+            <ChevronDown className="h-5 w-5" />
           </div>
         </motion.div>
       ) : (
@@ -193,12 +171,12 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
                 initial={{ opacity: 0, scale: 0.96, y: 12 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 12 }}
-                className="w-full max-w-md overflow-hidden rounded-3xl border border-natural-border bg-natural-surface shadow-2xl"
+                className="flex max-h-[82vh] w-full max-w-sm flex-col overflow-hidden rounded-3xl border border-natural-border bg-natural-surface shadow-2xl"
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="flex items-center justify-between border-b border-natural-border/60 px-5 py-4">
                   <div>
-                    <h3 className="text-base font-extrabold text-natural-dark">Tous les patients</h3>
+                    <h3 className="text-base font-extrabold text-natural-dark">Changer de patient</h3>
                     <p className="text-xs font-medium text-natural-secondary">Patients enregistrés sur cet appareil</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -223,7 +201,7 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
                   </div>
                 </div>
 
-                <div className="max-h-[28rem] overflow-y-auto p-4">
+                <div className="min-h-0 flex-1 overflow-y-auto p-3">
                   {isAddingPatient && (
                     <form
                       onSubmit={handleAddPatient}
@@ -305,7 +283,7 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
                   )}
 
                   {patientProfiles.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {patientProfiles.map((profile) => {
                         const isActive = getProfileKey(profile) === activePatientKey;
 
@@ -316,11 +294,15 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
                             onClick={() => selectPatient(profile)}
                             className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-all hover:border-natural-primary/40 hover:bg-natural-primary/5 ${
                               isActive
-                                ? "border-natural-primary/30 bg-natural-primary/10"
+                                ? "border-natural-primary/40 bg-natural-primary/10"
                                 : "border-natural-border/50 bg-natural-bg/40"
                             }`}
                           >
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-natural-primary/10 text-sm font-black text-natural-primary">
+                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-black ${
+                              isActive
+                                ? "bg-natural-primary text-white"
+                                : "bg-natural-primary/10 text-natural-primary"
+                            }`}>
                               {profile.prenom.charAt(0).toUpperCase()}{profile.nom.charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0 flex-1">
@@ -331,11 +313,13 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
                                 {calculateAge(profile.dateNaissance)} ans
                               </p>
                             </div>
-                            {isActive && (
-                              <span className="rounded-full bg-natural-primary px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                                Actif
-                              </span>
-                            )}
+                            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
+                              isActive
+                                ? "border-natural-primary bg-natural-primary text-white"
+                                : "border-natural-border bg-white"
+                            }`}>
+                              {isActive && <Check className="h-3.5 w-3.5" />}
+                            </span>
                           </button>
                         );
                       })}
@@ -354,3 +338,4 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
     </>
   );
 }
+
