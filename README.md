@@ -2,6 +2,7 @@
 
 **VocalHealth** est une application de suivi santé pensée pour noter, suivre et analyser simplement ses mesures de tension, pouls et saturation.  
 L'objectif est clair : rendre le suivi quotidien plus rapide, plus lisible et plus accessible, avec une saisie vocale guidée et un tableau de bord médical sobre.
+
 <img width="1274" height="668" alt="image" src="https://github.com/user-attachments/assets/87b2557b-4210-4c4c-98ef-bdbe423b6c63" />
 
 ## Ce que fait l'app
