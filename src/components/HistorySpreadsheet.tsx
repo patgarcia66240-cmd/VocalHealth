@@ -427,9 +427,15 @@ export default function HistorySpreadsheet({
                 return (
                   <React.Fragment key={r.id}>
                     <tr
-                      className={`hover:bg-natural-bg/40 transition-colors ${isEditing ? "bg-natural-bg/60" : ""}`}
+                      className={`hover:bg-sky-50/70 transition-colors ${isEditing ? "bg-sky-50/80" : "cursor-pointer"}`}
                       role="row"
                       aria-labelledby={`row-${r.id}`}
+                      onDoubleClick={() => {
+                        if (!isEditing) {
+                          handleStartInlineEdit(r);
+                        }
+                      }}
+                      title={isEditing ? "Ligne en modification" : "Double-cliquez pour modifier"}
                     >
                       {/* Date - always visible */}
                       <td className="py-3 px-4" role="cell" headers="col-date">
@@ -565,6 +571,45 @@ export default function HistorySpreadsheet({
                         </div>
                       </td>
                     </tr>
+
+                    {/* Inline edit details */}
+                    {isEditing && (
+                      <tr className="bg-natural-bg/40" role="row">
+                        <td colSpan={5} className="px-4 pb-4" role="cell">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded-2xl border border-natural-border/50 bg-natural-surface p-3">
+                            {settings.spo2Enabled && (
+                              <label className="space-y-1">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-natural-secondary">SpO2 (%)</span>
+                                <input
+                                  type="number"
+                                  value={inlineSpo2}
+                                  onChange={(event) => setInlineSpo2(parseInt(event.target.value) || 0)}
+                                  className="w-full px-3 py-2 border border-natural-border rounded-xl focus:ring-1 focus:ring-natural-primary bg-natural-surface text-sm font-mono"
+                                />
+                              </label>
+                            )}
+                            <label className={settings.spo2Enabled ? "space-y-1" : "space-y-1 md:col-span-2"}>
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-natural-secondary">Remarques</span>
+                              <input
+                                type="text"
+                                value={inlineRemarks}
+                                onChange={(event) => setInlineRemarks(event.target.value)}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter") {
+                                    handleSaveInlineEdit(r);
+                                  }
+                                  if (event.key === "Escape") {
+                                    setEditingRowId(null);
+                                  }
+                                }}
+                                className="w-full px-3 py-2 border border-natural-border rounded-xl focus:ring-1 focus:ring-natural-primary bg-natural-surface text-sm"
+                                placeholder="Ajouter une note..."
+                              />
+                            </label>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
 
                     {/* Expanded row for details */}
                     {isExpanded && !isEditing && (

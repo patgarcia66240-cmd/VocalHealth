@@ -1,29 +1,17 @@
-import { FormEvent, useMemo, useState } from "react";
+﻿import { FormEvent, useMemo, useState } from "react";
 import { Check, ChevronDown, Plus, UserCheck, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { PatientProfile } from "../types";
 import { calculateAge } from "../utils";
+import {
+  getPatientProfileKey,
+  mergePatientProfiles,
+  selectPatientProfile,
+} from "../services/patientProfiles";
 
 interface PatientSelectorCardProps {
   patientProfile?: PatientProfile | null;
   onProfileChange?: (profile: PatientProfile | null) => void;
-}
-
-function getProfileKey(profile: PatientProfile) {
-  return `${profile.prenom.trim().toLowerCase()}|${profile.nom.trim().toLowerCase()}|${profile.dateNaissance}`;
-}
-
-function loadStoredProfiles() {
-  const saved = localStorage.getItem("patient_profiles");
-
-  if (!saved) return [];
-
-  try {
-    return JSON.parse(saved) as PatientProfile[];
-  } catch (error) {
-    console.error("Failed to load patient profiles", error);
-    return [];
-  }
 }
 
 export default function PatientSelectorCard({ patientProfile, onProfileChange }: PatientSelectorCardProps) {
@@ -40,27 +28,13 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
   });
 
   const patientProfiles = useMemo(() => {
-    const profiles = loadStoredProfiles();
-    const mergedProfiles = patientProfile ? [patientProfile, ...profiles] : profiles;
-    const uniqueProfiles = new Map<string, PatientProfile>();
-
-    mergedProfiles.forEach((profile) => {
-      uniqueProfiles.set(getProfileKey(profile), profile);
-    });
-
-    return Array.from(uniqueProfiles.values());
+    return mergePatientProfiles(patientProfile);
   }, [patientProfile]);
 
-  const activePatientKey = patientProfile ? getProfileKey(patientProfile) : null;
+  const activePatientKey = patientProfile ? getPatientProfileKey(patientProfile) : null;
 
   const selectPatient = (profile: PatientProfile) => {
-    const nextProfiles = [
-      profile,
-      ...patientProfiles.filter((item) => getProfileKey(item) !== getProfileKey(profile)),
-    ];
-
-    localStorage.setItem("patient_profile", JSON.stringify(profile));
-    localStorage.setItem("patient_profiles", JSON.stringify(nextProfiles));
+    selectPatientProfile(profile, patientProfiles);
     onProfileChange?.(profile);
     setShowPatientsModal(false);
     setIsAddingPatient(false);
@@ -149,7 +123,7 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
             <UserCheck className="h-5 w-5 opacity-70" />
           </div>
           <div className="text-xs text-natural-secondary font-medium">
-            💡 <span className="font-bold text-natural-dark">Astuce :</span> Renseignez votre <span className="font-bold text-natural-primary">Profil Patient</span> dans la barre latérale pour afficher votre âge, vos coordonnées et personnaliser votre tableau de bord médical.
+            Astuce : renseignez votre <span className="font-bold text-natural-primary">Profil Patient</span> dans la barre latérale pour afficher votre âge, vos coordonnées et personnaliser votre tableau de bord médical.
           </div>
         </div>
       )}
@@ -285,12 +259,12 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
                   {patientProfiles.length > 0 ? (
                     <div className="space-y-1.5">
                       {patientProfiles.map((profile) => {
-                        const isActive = getProfileKey(profile) === activePatientKey;
+                        const isActive = getPatientProfileKey(profile) === activePatientKey;
 
                         return (
                           <button
                             type="button"
-                            key={getProfileKey(profile)}
+                            key={getPatientProfileKey(profile)}
                             onClick={() => selectPatient(profile)}
                             className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-all hover:border-natural-primary/40 hover:bg-natural-primary/5 ${
                               isActive

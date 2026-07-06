@@ -3,38 +3,19 @@ import { User, Edit2, Check, X, ChevronDown } from "lucide-react";
 import { PatientProfile } from "../types";
 import { calculateAge } from "../utils";
 import { motion, AnimatePresence } from "motion/react";
+import {
+  getPatientProfileKey,
+  loadPatientProfile,
+  mergePatientProfiles,
+  removePatientProfile,
+  savePatientProfile,
+  selectPatientProfile,
+  upsertPatientProfile,
+} from "../services/patientProfiles";
 
 interface PatientProfileWidgetProps {
   currentProfile?: PatientProfile | null;
   onProfileChange?: (profile: PatientProfile | null) => void;
-}
-
-function getPatientProfileKey(profile: PatientProfile) {
-  return `${profile.prenom.trim().toLowerCase()}|${profile.nom.trim().toLowerCase()}|${profile.dateNaissance}`;
-}
-
-function upsertPatientProfile(profile: PatientProfile) {
-  const saved = localStorage.getItem("patient_profiles");
-  const profiles: PatientProfile[] = saved ? JSON.parse(saved) : [];
-  const profileKey = getPatientProfileKey(profile);
-  const nextProfiles = [
-    profile,
-    ...profiles.filter((item) => getPatientProfileKey(item) !== profileKey)
-  ];
-
-  localStorage.setItem("patient_profiles", JSON.stringify(nextProfiles));
-}
-
-function removePatientProfile(profile: PatientProfile) {
-  const saved = localStorage.getItem("patient_profiles");
-  if (!saved) return;
-
-  const profileKey = getPatientProfileKey(profile);
-  const profiles: PatientProfile[] = JSON.parse(saved);
-  localStorage.setItem(
-    "patient_profiles",
-    JSON.stringify(profiles.filter((item) => getPatientProfileKey(item) !== profileKey))
-  );
 }
 
 export default function PatientProfileWidget({ currentProfile, onProfileChange }: PatientProfileWidgetProps) {
@@ -43,15 +24,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
       return currentProfile;
     }
 
-    const saved = localStorage.getItem("patient_profile");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error("Failed to parse patient profile", e);
-      }
-    }
-    return null;
+    return loadPatientProfile();
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -67,16 +40,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
   const [dateNaissance, setDateNaissance] = useState("");
 
   const patientProfiles = useMemo(() => {
-    const saved = localStorage.getItem("patient_profiles");
-    const savedProfiles: PatientProfile[] = saved ? JSON.parse(saved) : [];
-    const mergedProfiles = profile ? [profile, ...savedProfiles] : savedProfiles;
-    const uniqueProfiles = new Map<string, PatientProfile>();
-
-    mergedProfiles.forEach((item) => {
-      uniqueProfiles.set(getPatientProfileKey(item), item);
-    });
-
-    return Array.from(uniqueProfiles.values());
+    return mergePatientProfiles(profile);
   }, [profile]);
 
   useEffect(() => {
@@ -119,7 +83,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
       dateNaissance: dateNaissance
     };
 
-    localStorage.setItem("patient_profile", JSON.stringify(updatedProfile));
+    savePatientProfile(updatedProfile);
     upsertPatientProfile(updatedProfile);
     setProfile(updatedProfile);
     setIsEditing(false);
@@ -133,7 +97,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
       if (profile) {
         removePatientProfile(profile);
       }
-      localStorage.removeItem("patient_profile");
+      savePatientProfile(null);
       setProfile(null);
       setIsEditing(false);
       if (onProfileChange) {
@@ -143,13 +107,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
   };
 
   const handleSelectPatient = (selectedProfile: PatientProfile) => {
-    const nextProfiles = [
-      selectedProfile,
-      ...patientProfiles.filter((item) => getPatientProfileKey(item) !== getPatientProfileKey(selectedProfile)),
-    ];
-
-    localStorage.setItem("patient_profile", JSON.stringify(selectedProfile));
-    localStorage.setItem("patient_profiles", JSON.stringify(nextProfiles));
+    selectPatientProfile(selectedProfile, patientProfiles);
     setProfile(selectedProfile);
     setIsEditing(false);
     setShowPatientSelect(false);
@@ -168,7 +126,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
           </div>
           <div>
             <h3 className="font-bold text-natural-dark text-sm font-sans tracking-tight">Profil Patient</h3>
-            <p className="text-[10px] text-natural-secondary font-semibold font-sans uppercase tracking-widest opacity-80">IdentitÃ© mÃ©dicale</p>
+            <p className="text-[10px] text-natural-secondary font-semibold font-sans uppercase tracking-widest opacity-80">Identité médicale</p>
           </div>
         </div>
         
@@ -190,7 +148,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
                 id="edit-profile-btn"
               >
                 <Edit2 className="h-3.5 w-3.5" />
-                <span>{profile ? "Modifier" : "CrÃ©er"}</span>
+                <span>{profile ? "Modifier" : "Créer"}</span>
               </button>
             </>
           ) : (
@@ -218,7 +176,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
           >
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">PrÃ©nom</label>
+                <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">Prénom</label>
                 <input
                   type="text"
                   required
@@ -253,7 +211,7 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">TÃ©lÃ©phone</label>
+              <label className="font-bold text-natural-secondary font-sans text-[10px] uppercase tracking-wider">Téléphone</label>
               <input
                 type="tel"
                 placeholder="Ex: 06 12 34 56 78"
@@ -354,14 +312,14 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
             <div>
               <p className="text-xs font-bold text-natural-dark">Aucun profil patient</p>
               <p className="text-[10px] text-natural-secondary mt-1 max-w-45 mx-auto leading-relaxed">
-                CrÃ©ez votre profil pour un suivi personnalisÃ©
+                Créez votre profil pour un suivi personnalisé
               </p>
             </div>
             <button
               onClick={() => setIsEditing(true)}
               className="mt-1 px-4 py-2 bg-linear-to-r from-natural-primary/10 to-natural-accent/10 hover:from-natural-primary hover:to-natural-accent text-natural-primary hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm hover:shadow-md"
             >
-              CrÃ©er mon profil
+              Créer mon profil
             </button>
           </motion.div>
         )}

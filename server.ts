@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+import { getTursoClient, isTursoConfigured } from "./server/db/turso";
 
 // Charger explicitement .env.local
 dotenv.config({ path: '.env.local' });
@@ -36,6 +37,25 @@ function getGeminiClient(): GoogleGenAI {
 // Endpoint status/health
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
+});
+
+app.get("/api/db/status", async (_req, res) => {
+  if (!isTursoConfigured()) {
+    res.json({ configured: false, status: "not_configured" });
+    return;
+  }
+
+  try {
+    const db = getTursoClient();
+    await db.execute("SELECT 1");
+    res.json({ configured: true, status: "ok" });
+  } catch (error: any) {
+    res.status(500).json({
+      configured: true,
+      status: "error",
+      error: error.message || "Turso connection failed",
+    });
+  }
 });
 
 async function parseWithOpenAI(text: string, apiKey: string) {
