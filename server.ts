@@ -4,6 +4,8 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { getTursoClient, isTursoConfigured } from "./server/db/turso";
+import { getStorageMode } from "./server/config/storageMode";
+import tursoRoutes from "./server/routes/tursoRoutes";
 
 // Charger explicitement .env.local
 dotenv.config({ path: '.env.local' });
@@ -40,23 +42,33 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.get("/api/db/status", async (_req, res) => {
+  const storageMode = getStorageMode();
+
+  if (storageMode === "local") {
+    res.json({ mode: storageMode, configured: false, status: "local" });
+    return;
+  }
+
   if (!isTursoConfigured()) {
-    res.json({ configured: false, status: "not_configured" });
+    res.json({ mode: storageMode, configured: false, status: "not_configured" });
     return;
   }
 
   try {
     const db = getTursoClient();
     await db.execute("SELECT 1");
-    res.json({ configured: true, status: "ok" });
+    res.json({ mode: storageMode, configured: true, status: "ok" });
   } catch (error: any) {
     res.status(500).json({
       configured: true,
+      mode: storageMode,
       status: "error",
       error: error.message || "Turso connection failed",
     });
   }
 });
+
+app.use("/api/cloud", tursoRoutes);
 
 async function parseWithOpenAI(text: string, apiKey: string) {
   const response = await fetch("https://api.openai.com/v1/chat/completions", {

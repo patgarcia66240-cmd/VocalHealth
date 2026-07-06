@@ -80,12 +80,17 @@ export function useRecords(onStatusMessage: (message: string | null) => void) {
     setRecords((prev) => prev.filter((record) => record.id !== id));
   };
 
-  const replaceImportedRecords = async (imported: MeasurementRecord[], replaceDateKeys = new Set<string>()) => {
-    const remainingRecords = records.filter((record) => !replaceDateKeys.has(getRecordDateKey(record.timestamp)));
+  const replaceImportedRecords = async (
+    imported: MeasurementRecord[],
+    replaceDateKeys = new Set<string>(),
+    patientId?: string,
+  ) => {
+    const isInScope = (record: MeasurementRecord) => !patientId || record.patientId === patientId;
+    const remainingRecords = records.filter((record) => !(isInScope(record) && replaceDateKeys.has(getRecordDateKey(record.timestamp))));
     const nextRecords = sortNewestFirst([...imported, ...remainingRecords]);
 
     for (const record of records) {
-      if (replaceDateKeys.has(getRecordDateKey(record.timestamp))) {
+      if (isInScope(record) && replaceDateKeys.has(getRecordDateKey(record.timestamp))) {
         await deleteRecord(record.id);
       }
     }
@@ -95,7 +100,16 @@ export function useRecords(onStatusMessage: (message: string | null) => void) {
     showStatus(`${imported.length} mesure(s) importée(s).`);
   };
 
-  const clearRecords = async () => {
+  const clearRecords = async (patientId?: string) => {
+    if (patientId) {
+      const recordsToDelete = records.filter((record) => record.patientId === patientId);
+      for (const record of recordsToDelete) {
+        await deleteRecord(record.id);
+      }
+      setRecords((prev) => prev.filter((record) => record.patientId !== patientId));
+      return;
+    }
+
     await clearAllRecords();
     setRecords([]);
   };

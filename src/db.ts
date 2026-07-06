@@ -1,8 +1,15 @@
-import { MeasurementRecord } from "./types";
+import { MeasurementRecord, PatientProfile } from "./types";
 
 const DB_NAME = "VocalTensionDB";
 const STORE_NAME = "records";
-const DB_VERSION = 1;
+const PATIENTS_STORE_NAME = "patients";
+const APP_STATE_STORE_NAME = "app_state";
+const DB_VERSION = 2;
+
+interface AppStateEntry {
+  key: string;
+  value: string | null;
+}
 
 /**
  * Custom error class for database operations
@@ -34,7 +41,20 @@ export function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: "id" });
       }
+      if (!db.objectStoreNames.contains(PATIENTS_STORE_NAME)) {
+        db.createObjectStore(PATIENTS_STORE_NAME, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(APP_STATE_STORE_NAME)) {
+        db.createObjectStore(APP_STATE_STORE_NAME, { keyPath: "key" });
+      }
     };
+  });
+}
+
+function requestToPromise<T>(request: IDBRequest<T>, errorMessage: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(new DatabaseError(errorMessage, request.error || undefined));
   });
 }
 
@@ -60,6 +80,84 @@ export async function getAllRecords(): Promise<MeasurementRecord[]> {
     });
   } catch (error) {
     throw new DatabaseError("Failed to open database for reading", error instanceof Error ? error : undefined);
+  }
+}
+
+export async function getAllPatients(): Promise<PatientProfile[]> {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(PATIENTS_STORE_NAME, "readonly");
+    const store = transaction.objectStore(PATIENTS_STORE_NAME);
+    return await requestToPromise<PatientProfile[]>(store.getAll(), "Failed to read patients from IndexedDB");
+  } catch (error) {
+    throw new DatabaseError("Failed to open database for patient reading", error instanceof Error ? error : undefined);
+  }
+}
+
+export async function savePatient(profile: PatientProfile): Promise<void> {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(PATIENTS_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(PATIENTS_STORE_NAME);
+    await requestToPromise(store.put(profile), "Failed to save patient to IndexedDB");
+  } catch (error) {
+    throw new DatabaseError("Failed to open database for patient writing", error instanceof Error ? error : undefined);
+  }
+}
+
+export async function savePatients(profiles: PatientProfile[]): Promise<void> {
+  try {
+    const db = await openDB();
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction(PATIENTS_STORE_NAME, "readwrite");
+      const store = transaction.objectStore(PATIENTS_STORE_NAME);
+
+      profiles.forEach((profile) => store.put(profile));
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(new DatabaseError("Failed to save patients to IndexedDB", transaction.error || undefined));
+    });
+  } catch (error) {
+    throw new DatabaseError("Failed to open database for patient bulk writing", error instanceof Error ? error : undefined);
+  }
+}
+
+export async function deletePatient(id: string): Promise<void> {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(PATIENTS_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(PATIENTS_STORE_NAME);
+    await requestToPromise(store.delete(id), "Failed to delete patient from IndexedDB");
+  } catch (error) {
+    throw new DatabaseError("Failed to open database for patient deletion", error instanceof Error ? error : undefined);
+  }
+}
+
+export async function getAppStateValue(key: string): Promise<string | null> {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(APP_STATE_STORE_NAME, "readonly");
+    const store = transaction.objectStore(APP_STATE_STORE_NAME);
+    const entry = await requestToPromise<AppStateEntry | undefined>(store.get(key), "Failed to read app state from IndexedDB");
+    return entry?.value ?? null;
+  } catch (error) {
+    throw new DatabaseError("Failed to open database for app state reading", error instanceof Error ? error : undefined);
+  }
+}
+
+export async function setAppStateValue(key: string, value: string | null): Promise<void> {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(APP_STATE_STORE_NAME, "readwrite");
+    const store = transaction.objectStore(APP_STATE_STORE_NAME);
+
+    if (value === null) {
+      await requestToPromise(store.delete(key), "Failed to delete app state from IndexedDB");
+      return;
+    }
+
+    await requestToPromise(store.put({ key, value }), "Failed to save app state to IndexedDB");
+  } catch (error) {
+    throw new DatabaseError("Failed to open database for app state writing", error instanceof Error ? error : undefined);
   }
 }
 

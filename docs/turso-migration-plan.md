@@ -46,6 +46,8 @@ turso db tokens create vocalhealth
 Add these values to `.env.local`:
 
 ```env
+APP_STORAGE_MODE="turso"
+VITE_STORAGE_MODE="turso"
 TURSO_DATABASE_URL="libsql://your-db-name-your-org.turso.io"
 TURSO_AUTH_TOKEN="your-token"
 ```
@@ -87,13 +89,13 @@ GET /api/db/status
 Expected before env vars:
 
 ```json
-{ "configured": false, "status": "not_configured" }
+{ "mode": "local", "configured": false, "status": "local" }
 ```
 
 Expected after env vars:
 
 ```json
-{ "configured": true, "status": "ok" }
+{ "mode": "turso", "configured": true, "status": "ok" }
 ```
 
 ## 4. API Routes To Add
@@ -101,18 +103,18 @@ Expected after env vars:
 Add these server routes before changing frontend storage:
 
 ```text
-GET    /api/patients
-POST   /api/patients
-PUT    /api/patients/:id
-DELETE /api/patients/:id
+GET    /api/cloud/patients
+POST   /api/cloud/patients
+PUT    /api/cloud/patients/:id
+DELETE /api/cloud/patients/:id
 
-GET    /api/records?patientId=...
-POST   /api/records
-PUT    /api/records/:id
-DELETE /api/records/:id
+GET    /api/cloud/records?patientId=...
+POST   /api/cloud/records
+PUT    /api/cloud/records/:id
+DELETE /api/cloud/records/:id
 
-GET    /api/medical-settings?patientId=...
-PUT    /api/medical-settings/:patientId
+GET    /api/cloud/medical-settings?patientId=...
+PUT    /api/cloud/medical-settings/:patientId
 ```
 
 Keep IndexedDB/localStorage as the app source of truth until these routes are tested.

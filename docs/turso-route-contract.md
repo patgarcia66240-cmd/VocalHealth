@@ -4,7 +4,9 @@ This is the draft contract for future Turso-backed routes.
 
 ## Patients
 
-### `GET /api/patients`
+All routes are mounted under `/api/cloud` and are active only when `APP_STORAGE_MODE=turso`.
+
+### `GET /api/cloud/patients`
 
 Response:
 
@@ -25,7 +27,7 @@ Response:
 }
 ```
 
-### `POST /api/patients`
+### `POST /api/cloud/patients`
 
 Body:
 
@@ -43,7 +45,7 @@ Body:
 
 ## Records
 
-### `GET /api/records?patientId=pat_...`
+### `GET /api/cloud/records?patientId=pat_...`
 
 Response:
 
@@ -64,7 +66,7 @@ Response:
 }
 ```
 
-### `POST /api/records`
+### `POST /api/cloud/records`
 
 Body:
 
@@ -82,7 +84,7 @@ Body:
 
 ## Medical Settings
 
-### `GET /api/medical-settings?patientId=pat_...`
+### `GET /api/cloud/medical-settings?patientId=pat_...`
 
 Response:
 

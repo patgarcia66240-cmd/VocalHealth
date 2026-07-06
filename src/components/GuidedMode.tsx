@@ -367,7 +367,7 @@ function GuidedTextControls({
         <button
           onClick={() => onValidate(transcript)}
           disabled={isAnalyzing || !transcript.trim()}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-natural-primary px-5 text-xs font-extrabold text-white shadow-lg shadow-natural-primary/15 transition-all hover:bg-[#047857] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-natural-primary px-5 text-xs font-semibold text-gray-50 shadow-lg shadow-natural-primary/15 transition-all hover:bg-[#047857] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           title="Étape suivante"
         >
           <span>Valider</span>
@@ -375,10 +375,10 @@ function GuidedTextControls({
         </button>
       </div>
 
-      <div className="mt-3 flex items-center justify-between px-1">
+      <div className="mt-3 flex items-center justify-between gap-3 px-1">
         <button
           onClick={onReset}
-          className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-bold text-rose-600 transition-all hover:bg-rose-50 hover:text-rose-700"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-transparent px-3 py-1.5 text-xs font-bold text-rose-600 transition-all hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-300 dark:hover:border-rose-400/30 dark:hover:bg-rose-500/10 dark:hover:text-rose-200"
           title="Recommencer l'assistant du début"
         >
           <RotateCcw className="h-3.5 w-3.5" />
@@ -387,7 +387,7 @@ function GuidedTextControls({
 
         <button
           onClick={onSkip}
-          className="rounded-full px-3 py-1 text-xs font-bold text-natural-primary transition-all hover:bg-natural-primary/10"
+          className="inline-flex min-h-9 items-center justify-center rounded-full border border-natural-primary/25 bg-natural-primary/10 px-4 py-1.5 text-xs font-extrabold text-cyan-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-natural-primary/40 hover:bg-natural-primary/15 hover:shadow-md dark:border-cyan-300/30 dark:bg-cyan-300/10 dark:text-cyan-900 dark:shadow-cyan-950/20 dark:hover:border-cyan-200/50 dark:hover:bg-cyan-300/20 dark:hover:text-cyan-950"
         >
           Passer
         </button>

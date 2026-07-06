@@ -1,64 +1,67 @@
-# VocalHealth
+﻿# VocalHealth
 
-**VocalHealth** est une application de suivi santé pensée pour noter, suivre et analyser simplement ses mesures de tension, pouls et saturation.  
-L'objectif est clair : rendre le suivi quotidien plus rapide, plus lisible et plus accessible, avec une saisie vocale guidée et un tableau de bord médical sobre.
+**VocalHealth** est une application de suivi santé pour noter, suivre et analyser ses mesures de tension, pouls et saturation.  
+Elle privilégie une expérience locale, rapide et rassurante, avec une saisie vocale guidée en français et un tableau de bord clair.
 
-<img width="1274" height="668" alt="image" src="https://github.com/user-attachments/assets/87b2557b-4210-4c4c-98ef-bdbe423b6c63" />
+<img width="1274" height="668" alt="VocalHealth dashboard preview" src="https://github.com/user-attachments/assets/87b2557b-4210-4c4c-98ef-bdbe423b6c63" />
 
-## Ce que fait l'app
-
+## Fonctionnalités
 - Saisie vocale guidée en français pour tension, pouls et commentaires.
 - Mode libre pour dicter une mesure complète en une seule phrase.
 - Analyse IA des transcriptions avec Gemini, OpenAI, Mistral ou Qwen.
 - Saisie manuelle des mesures.
 - Import de mesures depuis une image via analyse IA.
-- Historique complet avec recherche, filtres, import/export CSV et édition inline.
+- Historique avec recherche, filtres, import/export CSV et édition inline.
 - Tableau de bord avec graphiques, statistiques et tendances.
-- Profil patient avec âge, coordonnées et sélection multi-patient locale.
-- Alertes médicales configurables selon les seuils tension, pouls et SpO2.
+- Profils patients multi-utilisateurs.
+- Chargement des mesures par patient sélectionné.
+- Alertes médicales configurables pour tension, pouls et SpO2.
 - Thème clair/sombre.
-- Stockage local actuel avec préparation pour une base Turso online.
+- Stockage local IndexedDB par défaut.
+- Code Turso déjà préparé pour une future version cloud.
 
 ## Stack
 
 - **Frontend** : React 19, Vite, TypeScript
 - **UI** : Tailwind CSS, lucide-react, motion
 - **Charts** : Recharts
-- **Backend local** : Express + tsx
+- **Backend** : Express + tsx
 - **IA** : Gemini, OpenAI, Mistral, Qwen
-- **Stockage actuel** : IndexedDB + localStorage
-- **Stockage prévu** : Turso/libSQL, SQLite online
+- **Stockage local** : IndexedDB + localStorage pour quelques préférences UI
+- **Stockage cloud préparé** : Turso/libSQL
 
-## Lancer le projet
+## Installation
 
 ### Prérequis
 
 - Node.js
 - npm
-- Une clé API IA au choix, au minimum `GEMINI_API_KEY` pour utiliser Gemini
+- Une clé API IA, au minimum `GEMINI_API_KEY`
 
-### Installation
+### Installer les dépendances
 
 ```powershell
 npm install
 ```
 
-### Configuration
+### Configurer l'environnement
 
-Crée un fichier `.env.local` à partir de `.env.example` :
+Crée `.env.local` depuis `.env.example` :
 
 ```powershell
 Copy-Item .env.example .env.local
 ```
 
-Renseigne au moins :
+Configuration minimale :
 
 ```env
-GEMINI_API_KEY="..."
 APP_URL="http://localhost:3000"
+GEMINI_API_KEY="..."
+APP_STORAGE_MODE="local"
+VITE_STORAGE_MODE="local"
 ```
 
-Les autres providers sont optionnels :
+Providers IA optionnels :
 
 ```env
 OPENAI_API_KEY=""
@@ -66,16 +69,16 @@ MISTRAL_API_KEY=""
 QWEN_API_KEY=""
 ```
 
-Les variables Turso sont déjà prévues, mais peuvent rester vides tant que la migration cloud n'est pas active :
+Préparation Turso optionnelle, inactive en mode local :
 
 ```env
 TURSO_DATABASE_URL=""
 TURSO_AUTH_TOKEN=""
 ```
 
-`.env.local` ne doit pas être committé. Il est protégé par `.gitignore`.
+`.env.local` ne doit pas être committé. Le repo ignore déjà `.env*` sauf `.env.example`.
 
-### Développement
+## Lancer l'app
 
 ```powershell
 npm run dev
@@ -87,97 +90,123 @@ Puis ouvre :
 http://localhost:3000
 ```
 
-### Vérification TypeScript
+## Scripts
 
 ```powershell
-npm run lint
+npm run dev      # serveur Express + Vite
+npm run lint     # vérification TypeScript
+npm run build    # build frontend + serveur
+npm start        # démarrage du build serveur
 ```
 
-### Build
+## Modes De Stockage
 
-```powershell
-npm run build
+Le mode local est le comportement par défaut.
+
+```env
+APP_STORAGE_MODE="local"
+VITE_STORAGE_MODE="local"
 ```
 
-### Démarrage production
+En local :
 
-```powershell
-npm start
+- `IndexedDB` stocke les mesures.
+- `IndexedDB` stocke les patients.
+- `IndexedDB` stocke le patient sélectionné dans `app_state`.
+- `localStorage` reste réservé aux préférences légères comme thème et providers.
+
+Le mode Turso est prêt côté serveur, mais il n'est pas activé par défaut :
+
+```env
+APP_STORAGE_MODE="turso"
+VITE_STORAGE_MODE="turso"
+TURSO_DATABASE_URL="libsql://..."
+TURSO_AUTH_TOKEN="..."
 ```
 
-## Architecture actuelle
+En mode Turso :
+
+- les routes `/api/cloud/*` deviennent disponibles ;
+- les credentials restent côté serveur ;
+- le frontend devra être branché sur ces routes lors d'une prochaine étape.
+
+## Architecture
 
 ```text
 src/
   components/          UI et vues principales
-  hooks/               état applicatif, voix, thème, records, flow guidé
+  hooks/               état applicatif, voix, thème, records, patients
   services/            parsing, API IA, patients, speech helpers
+  config/              configuration frontend
   db.ts                IndexedDB local
-  storage.ts           localStorage centralisé
+  storage.ts           localStorage pour préférences UI
   types.ts             types partagés côté frontend
 
 server/
-  db/
-    turso.ts           client Turso prêt pour plus tard
-    schema.sql         schéma SQLite online
+  config/              mode de stockage serveur
+  db/                  Turso client + schéma SQL
+  repositories/        accès Turso
+  routes/              routes cloud Turso
 
 docs/
   turso-migration-plan.md
   turso-route-contract.md
 ```
 
-## Stockage
+## IndexedDB Local
 
-Aujourd'hui :
+Base :
 
-- `IndexedDB` stocke les mesures.
-- `localStorage` stocke profil patient, liste patients, réglages médicaux, thème et providers IA.
+```text
+VocalTensionDB
+```
 
-Prévu ensuite :
+Stores :
 
-- Turso stockera `patients`, `measurement_records` et `medical_settings`.
-- Le frontend passera par des routes Express.
-- IndexedDB pourra rester comme cache/offline fallback.
+```text
+records     # mesures tension/pouls/SpO2/commentaires
+patients    # profils patients
+app_state   # état applicatif, dont selected_patient_id
+```
 
-## Schéma Turso prévu
+Les nouvelles mesures sont rattachées au patient sélectionné via `patientId`.
+
+## Turso Préparé
+
+Schéma SQL :
+
+```text
+server/db/schema.sql
+```
+
+Tables prévues :
 
 ```text
 patients
-  id
-  prenom
-  nom
-  adresse
-  cp
-  ville
-  tel
-  date_naissance
-
 measurement_records
-  id
-  patient_id
-  timestamp
-  systolic
-  diastolic
-  pulse
-  spo2
-  remarks
-
 medical_settings
-  id
-  patient_id
-  systolic_high
-  diastolic_high
-  systolic_low
-  diastolic_low
-  pulse_high
-  pulse_low
-  spo2_enabled
-  spo2_low
 ```
 
-Le détail opérationnel est dans [docs/turso-migration-plan.md](docs/turso-migration-plan.md).
+Routes déjà préparées :
 
-## Endpoints disponibles
+```text
+GET    /api/cloud/patients
+POST   /api/cloud/patients
+PUT    /api/cloud/patients/:id
+DELETE /api/cloud/patients/:id
+
+GET    /api/cloud/records?patientId=...
+POST   /api/cloud/records
+PUT    /api/cloud/records/:id
+DELETE /api/cloud/records/:id
+
+GET    /api/cloud/medical-settings?patientId=...
+PUT    /api/cloud/medical-settings/:patientId
+```
+
+En mode `local`, ces routes répondent volontairement `409 Cloud storage is disabled`.
+
+## Endpoints Actuels
 
 ```text
 GET  /api/health
@@ -186,27 +215,32 @@ POST /api/parse-measurements
 POST /api/parse-measurements-image
 ```
 
-`/api/db/status` permet de vérifier si Turso est configuré :
+Exemple `/api/db/status` en local :
 
 ```json
-{ "configured": false, "status": "not_configured" }
+{ "mode": "local", "configured": false, "status": "local" }
 ```
 
-ou :
+Exemple en Turso configuré :
 
 ```json
-{ "configured": true, "status": "ok" }
+{ "mode": "turso", "configured": true, "status": "ok" }
 ```
+
+## Documentation Migration
+
+- [Plan de migration Turso](docs/turso-migration-plan.md)
+- [Contrat API Turso](docs/turso-route-contract.md)
 
 ## Roadmap
 
-- Ajouter les routes Turso patients, records et settings.
-- Ajouter une action de synchronisation locale vers cloud.
-- Migrer les lectures depuis IndexedDB vers Turso.
-- Garder IndexedDB comme cache local.
-- Ajouter une authentification si l'app sort du cadre personnel/local.
-- Ajouter des tests ciblés sur parsing vocal, import CSV et migration.
+- Ajouter un bouton de synchronisation locale vers Turso.
+- Brancher le frontend sur `/api/cloud/*` quand `VITE_STORAGE_MODE=turso`.
+- Garder IndexedDB comme cache local/offline.
+- Ajouter une authentification avant usage multi-utilisateur réel.
+- Ajouter des tests sur parsing vocal, import CSV, patients et migration.
 
-## Note santé
+## Note Santé
 
 VocalHealth est un outil de suivi personnel. Il ne remplace pas un avis médical, un diagnostic ou une prise en charge par un professionnel de santé. En cas de symptôme inquiétant ou de mesure anormale persistante, contacte un professionnel.
+

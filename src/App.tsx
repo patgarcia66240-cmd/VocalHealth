@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MeasurementRecord, ParsedVoiceResult, PeriodFilter } from "./types";
 import { checkMedicalThresholds, filterRecordsByPeriod, MedicalAlertInfo } from "./utils";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -15,6 +15,7 @@ import AppAlerts from "./components/AppAlerts";
 import DashboardSection from "./components/DashboardSection";
 import HistorySection from "./components/HistorySection";
 import AppDrawers from "./components/AppDrawers";
+import { getPatientProfileKey } from "./services/patientProfiles";
 
 export default function App() {
   const [activePeriod] = useState<PeriodFilter>("all");
@@ -38,6 +39,42 @@ export default function App() {
   const { patientProfile, setPatientProfile } = usePatientProfile();
   const { medicalSettings, setMedicalSettings } = useMedicalSettings();
   const { theme, toggleTheme } = useTheme();
+  const activePatientId = patientProfile ? getPatientProfileKey(patientProfile) : undefined;
+  const migratedLegacyPatientIdRef = useRef<string | null>(null);
+
+  const patientRecords = useMemo(() => {
+    if (!activePatientId) {
+      return records.filter((record) => !record.patientId);
+    }
+
+    return records.filter((record) => record.patientId === activePatientId);
+  }, [activePatientId, records]);
+
+  useEffect(() => {
+    if (!activePatientId || migratedLegacyPatientIdRef.current === activePatientId) return;
+
+    const unassignedRecords = records.filter((record) => !record.patientId);
+    if (unassignedRecords.length === 0) return;
+
+    migratedLegacyPatientIdRef.current = activePatientId;
+
+    async function attachLegacyRecordsToPatient() {
+      try {
+        for (const record of unassignedRecords) {
+          await editRecord({ ...record, patientId: activePatientId });
+        }
+        showStatus(`${unassignedRecords.length} ancienne(s) mesure(s) rattachée(s) au patient sélectionné.`);
+      } catch (error) {
+        console.error("Erreur de rattachement des anciennes mesures :", error);
+        migratedLegacyPatientIdRef.current = null;
+        if (error instanceof DatabaseError) {
+          showStatus("Impossible de rattacher les anciennes mesures au patient sélectionné.");
+        }
+      }
+    }
+
+    attachLegacyRecordsToPatient();
+  }, [activePatientId, editRecord, records, showStatus]);
 
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -77,7 +114,10 @@ export default function App() {
 
   const handleSaveRecord = async (newRecordData: Omit<MeasurementRecord, "id">) => {
     try {
-      const newRecord = await addRecord(newRecordData);
+      const newRecord = await addRecord({
+        ...newRecordData,
+        patientId: activePatientId,
+      });
       setParsedVoiceResult(null);
       setShowManualForm(false);
 
@@ -111,7 +151,10 @@ export default function App() {
 
   const handleEditRecord = async (updatedRecord: MeasurementRecord) => {
     try {
-      await editRecord(updatedRecord);
+      await editRecord({
+        ...updatedRecord,
+        patientId: updatedRecord.patientId || activePatientId,
+      });
     } catch (error) {
       console.error("Erreur de mise à jour de la mesure :", error);
       if (error instanceof DatabaseError) {
@@ -144,8 +187,12 @@ export default function App() {
     if (imported.length === 0) return;
 
     try {
-      const importedDateKeys = new Set(imported.map((record) => getRecordDateKey(record.timestamp)));
-      const duplicateRecords = records.filter((record) => importedDateKeys.has(getRecordDateKey(record.timestamp)));
+      const importedWithPatient = imported.map((record) => ({
+        ...record,
+        patientId: activePatientId,
+      }));
+      const importedDateKeys = new Set(importedWithPatient.map((record) => getRecordDateKey(record.timestamp)));
+      const duplicateRecords = patientRecords.filter((record) => importedDateKeys.has(getRecordDateKey(record.timestamp)));
 
       if (duplicateRecords.length > 0) {
         const duplicateDates = Array.from(new Set(duplicateRecords.map((record) => getRecordDateKey(record.timestamp))));
@@ -159,7 +206,7 @@ export default function App() {
           cancelLabel: "Garder l'ancien",
           onConfirm: async () => {
             try {
-              await replaceImportedRecords(imported, importedDateKeys);
+              await replaceImportedRecords(importedWithPatient, importedDateKeys, activePatientId);
               setConfirmDialog((current) => ({ ...current, isOpen: false }));
             } catch (error) {
               console.error("Erreur lors de l'import :", error);
@@ -170,7 +217,7 @@ export default function App() {
         return;
       }
 
-      await replaceImportedRecords(imported);
+      await replaceImportedRecords(importedWithPatient, new Set<string>(), activePatientId);
     } catch (error) {
       console.error("Erreur lors de l'import :", error);
       if (error instanceof DatabaseError) {
@@ -180,8 +227,8 @@ export default function App() {
   };
 
   const filteredRecords = useMemo(() => {
-    return filterRecordsByPeriod(records, activePeriod);
-  }, [records, activePeriod]);
+    return filterRecordsByPeriod(patientRecords, activePeriod);
+  }, [patientRecords, activePeriod]);
 
   const handleClearAll = () => {
     setConfirmDialog({
@@ -191,7 +238,7 @@ export default function App() {
       variant: "danger",
       onConfirm: async () => {
         try {
-          await clearRecords();
+          await clearRecords(activePatientId);
           setConfirmDialog((current) => ({ ...current, isOpen: false }));
         } catch (error) {
           console.error("Erreur de vidage d'IndexedDB :", error);
@@ -226,7 +273,7 @@ export default function App() {
         <DashboardSection
           isLoading={isLoading}
           filteredRecords={filteredRecords}
-          allRecords={records}
+          allRecords={patientRecords}
           activePeriod={activePeriod}
           patientProfile={patientProfile}
           medicalSettings={medicalSettings}
@@ -240,7 +287,7 @@ export default function App() {
 
         <HistorySection
           isLoading={isLoading}
-          records={records}
+          records={patientRecords}
           medicalSettings={medicalSettings}
           onDeleteRequest={handleDeleteRecord}
           onEditRecord={handleEditRecord}

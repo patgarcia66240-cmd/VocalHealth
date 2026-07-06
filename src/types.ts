@@ -1,5 +1,6 @@
 export interface MeasurementRecord {
   id: string;
+  patientId?: string; // Local patient key. Legacy records may not have one.
   timestamp: string; // ISO string representing the date & time
   systolic: number;  // Systolic pressure in mmHg (e.g., 120)
   diastolic: number; // Diastolic pressure in mmHg (e.g., 80)
@@ -26,6 +27,7 @@ export interface ClassificationResult {
 }
 
 export interface PatientProfile {
+  id?: string;
   nom: string;
   prenom: string;
   adresse: string;

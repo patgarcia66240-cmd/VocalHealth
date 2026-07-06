@@ -1,14 +1,12 @@
-﻿import React, { useState, useEffect, useMemo } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { User, Edit2, Check, X, ChevronDown } from "lucide-react";
 import { PatientProfile } from "../types";
 import { calculateAge } from "../utils";
 import { motion, AnimatePresence } from "motion/react";
 import {
   getPatientProfileKey,
-  loadPatientProfile,
-  mergePatientProfiles,
+  loadPatientProfiles,
   removePatientProfile,
-  savePatientProfile,
   selectPatientProfile,
   upsertPatientProfile,
 } from "../services/patientProfiles";
@@ -19,18 +17,11 @@ interface PatientProfileWidgetProps {
 }
 
 export default function PatientProfileWidget({ currentProfile, onProfileChange }: PatientProfileWidgetProps) {
-  const [profile, setProfile] = useState<PatientProfile | null>(() => {
-    if (currentProfile !== undefined) {
-      return currentProfile;
-    }
-
-    return loadPatientProfile();
-  });
-
+  const [profile, setProfile] = useState<PatientProfile | null>(() => currentProfile ?? null);
+  const [patientProfiles, setPatientProfiles] = useState<PatientProfile[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [showPatientSelect, setShowPatientSelect] = useState(false);
-  
-  // Local form state
+
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
   const [adresse, setAdresse] = useState("");
@@ -39,8 +30,18 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
   const [tel, setTel] = useState("");
   const [dateNaissance, setDateNaissance] = useState("");
 
-  const patientProfiles = useMemo(() => {
-    return mergePatientProfiles(profile);
+  useEffect(() => {
+    let isMounted = true;
+
+    loadPatientProfiles(profile)
+      .then((profiles) => {
+        if (isMounted) setPatientProfiles(profiles);
+      })
+      .catch((error) => console.error("Failed to load patient profiles", error));
+
+    return () => {
+      isMounted = false;
+    };
   }, [profile]);
 
   useEffect(() => {
@@ -50,7 +51,6 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
     }
   }, [currentProfile]);
 
-  // Sync state when entering edit mode
   useEffect(() => {
     if (profile) {
       setNom(profile.nom);
@@ -71,51 +71,48 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
     }
   }, [isEditing, profile]);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const updatedProfile: PatientProfile = {
+      id: profile?.id,
       nom: nom.trim(),
       prenom: prenom.trim(),
       adresse: adresse.trim(),
       cp: cp.trim(),
       ville: ville.trim(),
       tel: tel.trim(),
-      dateNaissance: dateNaissance
+      dateNaissance,
     };
 
-    savePatientProfile(updatedProfile);
-    upsertPatientProfile(updatedProfile);
-    setProfile(updatedProfile);
+    const savedProfile = await upsertPatientProfile(updatedProfile);
+    setPatientProfiles(await loadPatientProfiles(savedProfile));
+    setProfile(savedProfile);
     setIsEditing(false);
-    if (onProfileChange) {
-      onProfileChange(updatedProfile);
-    }
+    onProfileChange?.(savedProfile);
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
     if (confirm("Voulez-vous supprimer les informations de votre profil patient ?")) {
       if (profile) {
-        removePatientProfile(profile);
+        await removePatientProfile(profile);
       }
-      savePatientProfile(null);
+      setPatientProfiles(await loadPatientProfiles(null));
       setProfile(null);
       setIsEditing(false);
-      if (onProfileChange) {
-        onProfileChange(null);
-      }
+      onProfileChange?.(null);
     }
   };
 
-  const handleSelectPatient = (selectedProfile: PatientProfile) => {
-    selectPatientProfile(selectedProfile, patientProfiles);
-    setProfile(selectedProfile);
+  const handleSelectPatient = async (selectedProfile: PatientProfile) => {
+    const nextProfile = await selectPatientProfile(selectedProfile);
+    setPatientProfiles(await loadPatientProfiles(nextProfile));
+    setProfile(nextProfile);
     setIsEditing(false);
     setShowPatientSelect(false);
-    onProfileChange?.(selectedProfile);
+    onProfileChange?.(nextProfile);
   };
 
   const age = profile ? calculateAge(profile.dateNaissance) : null;
-
   return (
     <>
     <div className="bg-linear-to-br from-natural-surface to-natural-card/30 rounded-[28px] border border-natural-border/50 p-4 shadow-lg shadow-natural-primary/5 space-y-3 backdrop-blur-sm" id="patient-profile-card">
@@ -403,6 +400,8 @@ export default function PatientProfileWidget({ currentProfile, onProfileChange }
     </>
   );
 }
+
+
 
 
 

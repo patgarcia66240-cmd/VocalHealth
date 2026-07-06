@@ -1,11 +1,11 @@
-﻿import { FormEvent, useMemo, useState } from "react";
+﻿import { FormEvent, useEffect, useState } from "react";
 import { Check, ChevronDown, Plus, UserCheck, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { PatientProfile } from "../types";
 import { calculateAge } from "../utils";
 import {
   getPatientProfileKey,
-  mergePatientProfiles,
+  loadPatientProfiles,
   selectPatientProfile,
 } from "../services/patientProfiles";
 
@@ -17,6 +17,7 @@ interface PatientSelectorCardProps {
 export default function PatientSelectorCard({ patientProfile, onProfileChange }: PatientSelectorCardProps) {
   const [showPatientsModal, setShowPatientsModal] = useState(false);
   const [isAddingPatient, setIsAddingPatient] = useState(false);
+  const [patientProfiles, setPatientProfiles] = useState<PatientProfile[]>([]);
   const [newPatient, setNewPatient] = useState({
     prenom: "",
     nom: "",
@@ -27,15 +28,26 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
     tel: "",
   });
 
-  const patientProfiles = useMemo(() => {
-    return mergePatientProfiles(patientProfile);
+  useEffect(() => {
+    let isMounted = true;
+
+    loadPatientProfiles(patientProfile)
+      .then((profiles) => {
+        if (isMounted) setPatientProfiles(profiles);
+      })
+      .catch((error) => console.error("Failed to load patient profiles", error));
+
+    return () => {
+      isMounted = false;
+    };
   }, [patientProfile]);
 
   const activePatientKey = patientProfile ? getPatientProfileKey(patientProfile) : null;
 
-  const selectPatient = (profile: PatientProfile) => {
-    selectPatientProfile(profile, patientProfiles);
-    onProfileChange?.(profile);
+  const selectPatient = async (profile: PatientProfile) => {
+    const selectedProfile = await selectPatientProfile(profile);
+    setPatientProfiles(await loadPatientProfiles(selectedProfile));
+    onProfileChange?.(selectedProfile);
     setShowPatientsModal(false);
     setIsAddingPatient(false);
   };
@@ -53,7 +65,7 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
       tel: newPatient.tel.trim(),
     };
 
-    selectPatient(profile);
+    void selectPatient(profile);
     setNewPatient({
       prenom: "",
       nom: "",
@@ -64,7 +76,6 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
       tel: "",
     });
   };
-
   return (
     <>
       {patientProfile ? (
@@ -312,4 +323,6 @@ export default function PatientSelectorCard({ patientProfile, onProfileChange }:
     </>
   );
 }
+
+
 

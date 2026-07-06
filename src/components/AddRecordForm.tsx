@@ -268,26 +268,6 @@ export default function AddRecordForm({ initialValues, onSave, onCancel, setting
           />
         </div>
 
-        {/* Buttons */}
-        <div className="flex justify-end gap-3 pt-2">
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-4 py-2 border border-natural-border hover:bg-natural-bg text-natural-secondary rounded-xl text-xs font-bold transition-colors focus:outline-none cursor-pointer"
-            >
-              Annuler
-            </button>
-          )}
-          <button
-            type="submit"
-            className="px-6 py-2.5 bg-linear-to-r from-natural-primary to-natural-accent hover:from-natural-primary/90 hover:to-natural-accent/90 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2 focus:outline-none cursor-pointer"
-            id="save-record-btn"
-          >
-            <Plus className="h-4 w-4" />
-            Enregistrer
-          </button>
-        </div>
       </form>
 
       {/* Footer with action buttons */}
